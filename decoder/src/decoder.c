@@ -231,12 +231,13 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
             decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
             break;
         }
-        // If we do not have any room for more subscriptions
-        if (i == MAX_CHANNEL_COUNT) {
-            STATUS_LED_RED();
-            print_error("Failed to update subscription - max subscriptions installed\n");
-            return -1;
-        }
+    }
+
+    // If we do not have any room for more subscriptions
+    if (i == MAX_CHANNEL_COUNT) {
+        STATUS_LED_RED();
+        print_error("Failed to update subscription - max subscriptions installed\n");
+        return -1;
     }
 
     flash_simple_erase_page(FLASH_STATUS_ADDR);

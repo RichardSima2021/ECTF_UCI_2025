@@ -158,8 +158,8 @@ int write_packet(msg_type_t type, const void *buf, uint16_t len) {
     // If there is data to write, write it
     if (len > 0) {
         result = write_bytes(buf, len, type != DEBUG_MSG);
-        // If we still need to ACK the last block
-        if (len % 256 && type != DEBUG_MSG && read_ack() < 0) {
+        // If we still need to ACK the last block (write_bytes does not handle the final ACK)
+        if (type != DEBUG_MSG && read_ack() < 0) {
             return -1;
         }
     }
@@ -198,8 +198,8 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
                 return -1;
             }
         }
-        if (header.len && header.len % 256) {
-            if (write_ack() < 0) { // ACK the final block
+        if (header.len) {
+            if (write_ack() < 0) { // ACK the final block (not handled by read_bytes)
                 return -1;
             }
         }
