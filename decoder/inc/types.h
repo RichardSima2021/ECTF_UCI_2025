@@ -27,7 +27,7 @@
 
 
 
-#define SECRET_PAGE_START_ADDRESS //TODO: some address
+#define SECRET_BASE_ADDRESS //TODO: some address
 
 
 

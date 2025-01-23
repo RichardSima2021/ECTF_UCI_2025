@@ -9,18 +9,16 @@
 #include "advanced_uart.h"
 #include "uart.h"
 
-#define MAX_UARTn MXC_UART_GET_UART(CONSOLE_UART)
 
 
-
-/** @brief Reads the next available character from UART. Different from uard_readbyte_raw because
-            it will wait until a character is ready. 
+/** @brief Reads the next available character from UART.
  * 
- *  @return The character read. Will return -1 on error.
+ *  @return The character read.  Otherwise see MAX78000 Error Codes for
+ *      a list of return codes.
 */
 int uart_readbyte(void){
-    int data = MXC_UART_ReadCharacter(CONSOLE_UART);
-    return (char)data;
+    int data = MXC_UART_ReadCharacter(MAX_UARTn);
+    return data;
 }
 
 /**
@@ -30,7 +28,7 @@ int uart_readbyte(void){
 void uart_writebyte(uint8_t data) {
     while (MAX_UARTn->status & MXC_F_UART_STATUS_TX_FULL) {
     }
-    MXC_UART_WriteCharacter(MXC_UARTn, data);
+    MXC_UART_WriteCharacter(MAX_UARTn, data);
 }
 
 /** @brief Flushes UART.

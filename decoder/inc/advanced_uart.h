@@ -13,9 +13,12 @@
 #include <string.h>
 #include "uart.h"
 #include "nvic_table.h"
+#include "board.h"
 
 /******************************** MACRO DEFINITIONS ********************************/
 #define UART_BAUD 115200
+
+#define MAX_UARTn MXC_UART_GET_UART(CONSOLE_UART)
 
 /******************************** FUNCTION PROTOTYPES ******************************/
 /** @brief Initializes the UART Interrupt handler.

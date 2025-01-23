@@ -23,7 +23,6 @@
 #include "host_messaging.h"
 #include "types.h"
 #include "simple_uart.h"
-#include "status_led.h"
 
 
 // /* Code between this #ifdef and the subsequent #endif will
@@ -267,6 +266,10 @@ void crypto_example(void) {
 }
 #endif  //CRYPTO_EXAMPLE
 
+void init_write_secrete(){
+    #TODO
+}
+
 /**********************************************************
  *********************** MAIN LOOP ************************
  **********************************************************/
@@ -280,6 +283,7 @@ int main(void) {
 
     // initialize the device
     init();
+    init_write_secrete();
 
     print_debug("Decoder Booted!\n");
 
