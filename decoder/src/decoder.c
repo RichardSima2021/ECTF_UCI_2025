@@ -19,99 +19,26 @@
 #include "status_led.h"
 #include "board.h"
 #include "mxc_delay.h"
-#include "simple_flash.h"
+#include "advanced_flash.h"
 #include "host_messaging.h"
-
+#include "types.h"
 #include "simple_uart.h"
-
-/* Code between this #ifdef and the subsequent #endif will
-*  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
-*  the projectk.mk file. */
-#ifdef CRYPTO_EXAMPLE
-/* The simple crypto example included with the reference design is intended
-*  to be an example of how you *may* use cryptography in your design. You
-*  are not limited nor required to use this interface in your design. It is
-*  recommended for newer teams to start by only using the simple crypto
-*  library until they have a working design. */
-#include "simple_crypto.h"
-#endif  //CRYPTO_EXAMPLE
-
-/**********************************************************
- ******************* PRIMITIVE TYPES **********************
- **********************************************************/
-
-#define timestamp_t uint64_t
-#define channel_id_t uint32_t
-#define decoder_id_t uint32_t
-#define pkt_len_t uint16_t
-
-/**********************************************************
- *********************** CONSTANTS ************************
- **********************************************************/
-
-#define MAX_CHANNEL_COUNT 8
-#define EMERGENCY_CHANNEL 0
-#define FRAME_SIZE 64
-#define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
-// This is a canary value so we can confirm whether this decoder has booted before
-#define FLASH_FIRST_BOOT 0xDEADBEEF
-
-/**********************************************************
- ********************* STATE MACROS ***********************
- **********************************************************/
-
-// Calculate the flash address where we will store channel info as the 2nd to last page available
-#define FLASH_STATUS_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (2 * MXC_FLASH_PAGE_SIZE))
+#include "status_led.h"
 
 
-/**********************************************************
- *********** COMMUNICATION PACKET DEFINITIONS *************
- **********************************************************/
+// /* Code between this #ifdef and the subsequent #endif will
+// *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
+// *  the projectk.mk file. */
+// #ifdef CRYPTO_EXAMPLE
+// /* The simple crypto example included with the reference design is intended
+// *  to be an example of how you *may* use cryptography in your design. You
+// *  are not limited nor required to use this interface in your design. It is
+// *  recommended for newer teams to start by only using the simple crypto
+// *  library until they have a working design. */
+// #include "simple_crypto.h"
+// #endif  //CRYPTO_EXAMPLE
 
-#pragma pack(push, 1) // Tells the compiler not to pad the struct members
-// for more information on what struct padding does, see:
-// https://www.gnu.org/software/c-intro-and-ref/manual/html_node/Structure-Layout.html
-typedef struct {
-    channel_id_t channel;
-    timestamp_t timestamp;
-    uint8_t data[FRAME_SIZE];
-} frame_packet_t;
 
-typedef struct {
-    decoder_id_t decoder_id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-    channel_id_t channel;
-} subscription_update_packet_t;
-
-typedef struct {
-    channel_id_t channel;
-    timestamp_t start;
-    timestamp_t end;
-} channel_info_t;
-
-typedef struct {
-    uint32_t n_channels;
-    channel_info_t channel_info[MAX_CHANNEL_COUNT];
-} list_response_t;
-
-#pragma pack(pop) // Tells the compiler to resume padding struct members
-
-/**********************************************************
- ******************** TYPE DEFINITIONS ********************
- **********************************************************/
-
-typedef struct {
-    bool active;
-    channel_id_t id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-} channel_status_t;
-
-typedef struct {
-    uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
-    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
-} flash_entry_t;
 
 /**********************************************************
  ************************ GLOBALS *************************
@@ -119,16 +46,6 @@ typedef struct {
 
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
-
-/**********************************************************
- ******************** REFERENCE FLAG **********************
- **********************************************************/
-
-// trust me, it's easier to get the boot reference flag by
-// getting this running than to try to untangle this
-// TODO: remove this from your final design
-// NOTE: you're not allowed to do this in your code
-typedef uint32_t aErjfkdfru;const aErjfkdfru aseiFuengleR[]={0x1ffe4b6,0x3098ac,0x2f56101,0x11a38bb,0x485124,0x11644a7,0x3c74e8,0x3c74e8,0x2f56101,0x2ca498,0x127bc,0x2e590b1,0x1d467da,0x1fbf0a2,0x11a38bb,0x2b22bad,0x2e590b1,0x1ffe4b6,0x2b61fc1,0x1fbf0a2,0x1fbf0a2,0x2e590b1,0x11644a7,0x2e590b1,0x1cc7fb2,0x1d073c6,0x2179d2e,0};const aErjfkdfru djFIehjkklIH[]={0x138e798,0x2cdbb14,0x1f9f376,0x23bcfda,0x1d90544,0x1cad2d2,0x860e2c,0x860e2c,0x1f9f376,0x25cbe0c,0x11c82b4,0x35ff56,0x3935040,0xc7ea90,0x23bcfda,0x1ae6dee,0x35ff56,0x138e798,0x21f6af6,0xc7ea90,0xc7ea90,0x35ff56,0x1cad2d2,0x35ff56,0x2b15630,0x3225338,0x4431c8,0};typedef int skerufjp;skerufjp siNfidpL(skerufjp verLKUDSfj){aErjfkdfru ubkerpYBd=12+1;skerufjp xUrenrkldxpxx=2253667944%0x432a1f32;aErjfkdfru UfejrlcpD=1361423303;verLKUDSfj=(verLKUDSfj+0x12345678)%60466176;while(xUrenrkldxpxx--!=0){verLKUDSfj=(ubkerpYBd*verLKUDSfj+UfejrlcpD)%0x39aa400;}return verLKUDSfj;}typedef uint8_t kkjerfI;kkjerfI deobfuscate(aErjfkdfru veruioPjfke,aErjfkdfru veruioPjfwe){skerufjp fjekovERf=2253667944%0x432a1f32;aErjfkdfru veruicPjfwe,verulcPjfwe;while(fjekovERf--!=0){veruioPjfwe=(veruioPjfwe-siNfidpL(veruioPjfke))%0x39aa400;veruioPjfke=(veruioPjfke-siNfidpL(veruioPjfwe))%60466176;}veruicPjfwe=(veruioPjfke+0x39aa400)%60466176;verulcPjfwe=(veruioPjfwe+60466176)%0x39aa400;return veruicPjfwe*60466176+verulcPjfwe-89;}
 
 
 /**********************************************************
@@ -152,22 +69,6 @@ int is_subscribed(channel_id_t channel) {
         }
     }
     return 0;
-}
-
-/** @brief Prints the boot reference design flag
- *
- *  TODO: Remove this in your final design
-*/
-void boot_flag(void) {
-    char flag[28];
-    char output_buf[128] = {0};
-
-    for (int i = 0; aseiFuengleR[i]; i++) {
-        flag[i] = deobfuscate(aseiFuengleR[i], djFIehjkklIH[i]);
-        flag[i+1] = 0;
-    }
-    sprintf(output_buf, "Boot Reference Flag: %s\n", flag);
-    print_debug(output_buf);
 }
 
 
@@ -290,10 +191,10 @@ void init() {
     int ret;
 
     // Initialize the flash peripheral to enable access to persistent memory
-    flash_simple_init();
+    flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_simple_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder

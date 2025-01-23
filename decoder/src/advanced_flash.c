@@ -103,3 +103,23 @@ int flash_write(uint32_t address, void *buffer, uint32_t len, char *key) {
     int error = MXC_FLC_Write(address, len, buffer);
     return error;
 }
+
+/**
+ * @brief Flash Read Secrets
+ * 
+ * @param channel_id: int, channel id of the secret to read
+ * @param buf: secret_t*, pointer to buffer for data to be read into
+ * @return int: return negative if failure, zero if success
+ */
+int read_secrets(int channel_id, secret_t* buf) {
+    // not implemented
+    return -1;
+}
+
+/**
+ * @brief Flash Write Secrets
+ * @param s: secret_t*, pointer to secret to write
+ */
+void write_secrets(secret_t* s) {
+    // not implemented
+}

@@ -8,6 +8,10 @@
 #ifndef ADVANCED_FLASH_H
 #define ADVANCED_FLASH_H
 
+#include <stdint.h>
+#include "types.h"
+
+
 /**
  * @brief Initialize the Flash Interface
  * 
@@ -59,6 +63,21 @@ int flash_write(uint32_t address, void* buffer, uint32_t size, char* key);//need
  * In order to be re-written the entire page must be erased.
 */
 int flash_erase_page(uint32_t address);
+
+/**
+ * @brief Flash Read Secrets
+ * 
+ * @param channel_id: int, channel id of the secret to read
+ * @param buf: secret_t*, pointer to buffer for data to be read into
+ * @return int: return negative if failure, zero if success
+ */
+int read_secrets(int channel_id, secret_t* buf);
+
+/**
+ * @brief Flash Write Secrets
+ * @param s: secret_t*, pointer to secret to write
+ */
+void write_secrets(secret_t* s);
 
 
 #endif
