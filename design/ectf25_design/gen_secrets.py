@@ -14,7 +14,21 @@ import argparse
 import json
 from pathlib import Path
 
+import secrets
+
 from loguru import logger
+
+
+def gen_channel_key(stream_length=16) -> dict:
+    """Generate mask_key, msg_key, subscription_key for a channel
+    """
+    # Generate a random 16-byte key
+    keys = {}
+    keys["mask_key"] = secrets.token_hex(stream_length)
+    keys["msg_key"] = secrets.token_hex(stream_length)
+    keys["subscription_key"] = secrets.token_hex(stream_length)
+
+    return keys
 
 
 def gen_secrets(channels: list[int]) -> bytes:
@@ -36,10 +50,15 @@ def gen_secrets(channels: list[int]) -> bytes:
     # You can change this to generate any secret material
     # The secrets file will never be shared with attackers
     secrets = {
-        "channels": channels,
-        "some_secrets": "EXAMPLE",
+        "channels": channels
     }
 
+    for channel in channels:
+        # Generate secret for each channel
+
+        secrets[f'channel_key_{channel}'] = gen_channel_key()
+
+    
     # NOTE: if you choose to use JSON for your file type, you will not be able to
     # store binary data, and must either use a different file type or encode the
     # binary data to hex, base64, or another type of ASCII-only encoding
