@@ -4,6 +4,9 @@
 #include "nvic_table.h"
 #include <stdio.h>
 
+
+
+
 /**
  * @brief ISR for the Flash Controller
  * 
@@ -111,15 +114,24 @@ int flash_write(uint32_t address, void *buffer, uint32_t len, char *key) {
  * @param buf: secret_t*, pointer to buffer for data to be read into
  * @return int: return negative if failure, zero if success
  */
-int read_secrets(int channel_id, secret_t* buf) {
-    // not implemented
-    return -1;
+int read_secrets(int channel_id, secret_t* secret_buffer) {
+    uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_PAGE_START_ADDRESS;
+    int error = flash_read(memory_addr,secret_t,sizeof(secret_t),); //k is not implemented
+    return error;
 }
 
 /**
  * @brief Flash Write Secrets
  * @param s: secret_t*, pointer to secret to write
  */
-void write_secrets(secret_t* s) {
-    // not implemented
+int write_secrets(secret_t* s) {
+    //First I will retrieve the channel ID to determine the offset
+    int channel_id=s->channel_id;
+    //then I calculate the memory offset from this channel id
+    uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_PAGE_START_ADDRESS;
+
+    //now I need to write into this memory address // the key is not done yet
+    int error= flash_write(memory_addr,s,sizeof(secret_t),);
+
+    return error;
 }
