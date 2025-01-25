@@ -1,0 +1,37 @@
+subscription_info
+{
+	channel - 4 bytes
+	device_ID - 4 bytes
+	start_time - 8 bytes
+	end_time - 8 bytes
+}
+
+// total subscription struct size: 24 bytes
+
+within global_secrets:
+{
+	Each channel has a corresponding checksum (some random 24 byte string) and a subscription key for that channel
+
+	Example:
+	channel_1 = 1
+	checksum_1 = abcdblablabla
+	sub_key_1 = random()
+}
+
+gen_subscription(sub_info) // python script
+	channel_num = get_channel_num(sub_info)
+	new_sub = interweave(sub_info, checksum[channel_num])
+
+	return encrypt(sub_key_i, new_sub)
+
+
+
+On the decoder:
+
+subscription_list = [subscription_0, subscription_1, subscription_2, etc]
+// where each subscription is a subscription_info struct (?)
+
+update_subscription(pkt_len, update_packet) {
+	new_sub = decrypt(sub_key_i, update_packet)
+	update_subscription_list(new_sub)
+}

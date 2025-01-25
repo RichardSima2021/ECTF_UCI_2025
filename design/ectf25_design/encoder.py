@@ -15,6 +15,7 @@ import struct
 import json
 
 
+
 class Encoder:
     def __init__(self, secrets: bytes):
         """
