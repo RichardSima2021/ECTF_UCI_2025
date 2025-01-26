@@ -19,6 +19,7 @@ from Cryptodome.Util.Padding import pad
 from Cryptodome.Hash import SHA256
 
 
+
 class Encoder:
     def __init__(self, secrets: bytes):
         """
