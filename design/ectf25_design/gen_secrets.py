@@ -14,19 +14,21 @@ import argparse
 import json
 from pathlib import Path
 
-import secrets
+import secrets as secret_gen
 
 from loguru import logger
 
 
-def gen_channel_key(stream_length=16) -> dict:
+def gen_channel_key(stream_length=8) -> dict:
     """Generate mask_key, msg_key, subscription_key for a channel
     """
     # Generate a random 16-byte key
     keys = {}
-    keys["mask_key"] = secrets.token_hex(stream_length)
-    keys["msg_key"] = secrets.token_hex(stream_length)
-    keys["subscription_key"] = secrets.token_hex(stream_length)
+    # 8 length of hex is 16 bytes long, json does not accpet hex.
+    keys["mask_key"] = secret_gen.token_hex(stream_length)
+    keys["msg_key"] = secret_gen.token_hex(stream_length)
+    keys["subscription_key"] = secret_gen.token_hex(stream_length)
+    keys["data_key"] = secret_gen.token_hex(stream_length)
 
     return keys
 
