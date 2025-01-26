@@ -12,13 +12,20 @@
 
 
 /** @brief Reads the next available character from UART.
- * 
- *  @return The character read.  Otherwise see MAX78000 Error Codes for
- *      a list of return codes.
+ *  @param status Pointer to a status variable. See MAX78000 error codes for a list.
+ *  @return The character read. If the status variable is set, this will be 0x00.
 */
-int uart_readbyte(void){
+uint8_t uart_readbyte(int* status) {
+    uint8_t value;
     int data = MXC_UART_ReadCharacter(MAX_UARTn);
-    return data;
+    if (data < 0) {
+        *status = data;
+        value = 0;
+    } else {
+        *status = 0;
+        value = (uint8_t)data;
+    }
+    return value;
 }
 
 /**

@@ -75,7 +75,7 @@ int flash_erase_page(uint32_t address){
  * with the specified amount of bytes and decrypt the buffer with a built-in key
 */
 void flash_read(uint32_t address, void *buffer, uint32_t len, char *key) {
-    MXC_FLC_Read(address, (uint32_t *)buffer, len);
+    MXC_FLC_Read(address, (uint32_t*)buffer, len);
     // Decrypt after read:
     // decrypt(buffer, key, len);
 }
