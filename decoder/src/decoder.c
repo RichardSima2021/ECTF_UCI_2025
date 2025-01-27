@@ -202,6 +202,15 @@ int list_channels() {
 }
 
 
+/** @brief Extracts interwoven subscription information from interwoven message.
+ * 
+ *  @param input A pointer to the beginning of our interwoven subscription information
+ *  @param output A pointer to a pointer to ensure no loss of data
+ * 
+ *  @return 0 upon success. -1 if error
+ */
+int extract()
+
 /** @brief Updates the channel subscription for a subset of channels.
  *
  *  @param pkt_len The length of the incoming packet
