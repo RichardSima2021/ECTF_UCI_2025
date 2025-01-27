@@ -3,13 +3,14 @@
 # from Cryptodome.Random import get_random_bytes
 # from Cryptodome.Util.Padding import pad, unpad
 
-from wolfcrypt.ciphers import Aes, MODE_CBC
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad
 
 if __name__ == '__main__':
 
     key = b'\x00' * 16
-    data = b'\x00' * 16
+    data = "hello world".encode('utf-8') + b'\x00' * 5
     iv = b'\x00' * 16
-    aes = Aes(key, MODE_CBC, iv)
+    aes = AES.new(key, AES.MODE_CBC, iv)
     ciphertext = aes.encrypt(data).hex()
     print("Ciphertext:", ciphertext)

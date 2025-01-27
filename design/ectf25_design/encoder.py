@@ -15,7 +15,6 @@ import struct
 import json
 import secrets as secret_gen
 from Cryptodome.Cipher import AES
-from Cryptodome.Util.Padding import pad
 from Cryptodome.Hash import SHA256
 
 
@@ -66,6 +65,12 @@ class Encoder:
         hash = SHA256.new()
         hash.update(data)
         return hash.digest()
+    
+    def pad(self, data, block_size):
+        """Pad the data to the block size"""
+        assert type(data) == bytes, "Data must be bytes"
+        padding_length = block_size - (len(data) % block_size)
+        return data + b'\x00' * padding_length
 
 
 
@@ -108,13 +113,13 @@ class Encoder:
         timestamp_prime = nounce[:8] + timestamp.to_bytes(8, 'little') + nounce[8:]
 
         c1_key = self.XOR((self.compute_hash(self.XOR(mask_key, timestamp.to_bytes(8, 'little')))), (msg_key))
-        c1_data = pad(timestamp_prime, (len(timestamp_prime) // 16 + 1) * 16)
+        c1_data = self.pad(timestamp_prime, 16)
         c1 = self.sym_encrypt(c1_key, iv, c1_data)
         c1_len = len(c1)
 
         # Prepare C2 info
         c2_key = self.XOR(nounce, data_key)
-        c2_data = pad(frame, (len(frame) // 16 + 1) * 16)
+        c2_data = self.pad(frame, 16)
         c2 = self.sym_encrypt(c2_key, iv, c2_data)
         c2_len = len(c2)
 
