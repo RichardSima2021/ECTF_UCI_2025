@@ -202,14 +202,20 @@ int list_channels() {
 }
 
 
-/** @brief Extracts interwoven subscription information from interwoven message.
+/** @brief Extracts subscription information and checksum from interwoven message.
  * 
  *  @param input A pointer to the beginning of our interwoven subscription information
- *  @param output A pointer to a pointer to ensure no loss of data
+ *  @param output A pointer to the output of the extracted subscription information
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract()
+int extract(const unsigned char *input, flash_entry_t *output) {
+    // Expecting 48 bytes (?) from interwoven message
+
+    // How is it interwoven?
+    // Where is the checksum?
+    // What to return? Multiple flash entries?
+}
 
 /** @brief Updates the channel subscription for a subset of channels.
  *
