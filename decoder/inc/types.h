@@ -73,7 +73,7 @@ typedef struct {
 } list_response_t;
 
 typedef struct {
-    char channel_id[4];
+    uint32_t channel_id;
     char mask_key[16];
     char msg_key[16];
     char data_key[16];
