@@ -338,5 +338,3 @@ msdk/
 *.secrets
 *.subscription
 
-## Secret Files
-secrets/

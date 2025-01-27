@@ -55,10 +55,10 @@ class Encoder:
         return bytes(a ^ b for a, b in zip(byte1, byte2))
 
     
-    def sym_encrypt(self, key, plaintext):
+    def sym_encrypt(self, key, iv, plaintext):
         """Encrypt plaintext using AES"""
 
-        aes = AES.new(key, AES.MODE_CBC)
+        aes = AES.new(key, AES.MODE_CBC, iv)
         return aes.encrypt(plaintext)
     
     def compute_hash(self, data):
@@ -102,21 +102,25 @@ class Encoder:
         assert len(data_key) == 16, "The data key is not 16 bytes long"
 
         nounce = secret_gen.token_bytes(16)
+        iv = secret_gen.token_bytes(16)
 
         # Prepare C1 info
         timestamp_prime = nounce[:8] + timestamp.to_bytes(8, 'little') + nounce[8:]
 
         c1_key = self.XOR((self.compute_hash(self.XOR(mask_key, timestamp.to_bytes(8, 'little')))), (msg_key))
         c1_data = pad(timestamp_prime, (len(timestamp_prime) // 16 + 1) * 16)
-        c1 = self.sym_encrypt(c1_key, c1_data)
+        c1 = self.sym_encrypt(c1_key, iv, c1_data)
+        c1_len = len(c1)
 
         # Prepare C2 info
         c2_key = self.XOR(nounce, data_key)
         c2_data = pad(frame, (len(frame) // 16 + 1) * 16)
-        c2 = self.sym_encrypt(c2_key, c2_data)
-        frame = c1 + c2
+        c2 = self.sym_encrypt(c2_key, iv, c2_data)
+        c2_len = len(c2)
 
-        return struct.pack("<IQ", channel, timestamp) + frame
+
+        return struct.pack("<IQII", channel, timestamp, c1_len, c2_len) + iv + c1 + c2
+    
 
 
 def main():
