@@ -84,3 +84,4 @@ Use-Venv
 Install-Secrets
 Install-Decoder
 Flash-Decoder
+# python ./serial_connection.py

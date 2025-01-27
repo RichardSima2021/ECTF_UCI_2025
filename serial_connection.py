@@ -10,7 +10,7 @@ def serial_setup():
         print("Auto port selected: " + ports[0].device)
         port = ports[0].device
     else:
-        port = "COM6" #change this to your usual port
+        port = "COM16" #change this to your usual port
     serialPort = serial.Serial(port=port, baudrate=115200)
 
     while True:

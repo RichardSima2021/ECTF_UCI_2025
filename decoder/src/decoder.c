@@ -267,6 +267,22 @@ void init() {
 // #endif  //CRYPTO_EXAMPLE
 
 
+void flash_test() {
+    char output_buf[128] = {0};
+    uint8_t data[16] = "Hello World!";
+    uint8_t read_data[16] = {0};
+
+    flash_erase_page(FLASH_STATUS_ADDR);
+    flash_write(FLASH_STATUS_ADDR, data, sizeof(data), "");
+    flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data), "");
+
+    sprintf(output_buf, "Flash test: %s\n", read_data);
+    print_debug(output_buf);
+}
+
+
+
+
 /**********************************************************
  *********************** MAIN LOOP ************************
  **********************************************************/
@@ -283,6 +299,9 @@ int main(void) {
     // init_secret();
 
     print_debug("Decoder Booted!\n");
+
+
+    flash_test();
 
     // process commands forever
     while (1) {
