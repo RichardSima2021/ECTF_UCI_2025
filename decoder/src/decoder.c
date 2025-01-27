@@ -214,6 +214,14 @@ int list_channels() {
  *  @return 0 upon success.  -1 if error.
 */
 int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update) {
+    /*   
+    2. Update subscription 
+        1. Decrypt subscription using subscription key
+        2. Extract the pre-encoded_msg
+        3. Extract subscription_info from interweaved message
+        4. Update subscription
+    */
+
     int i;
 
     if (update->channel == EMERGENCY_CHANNEL) {
