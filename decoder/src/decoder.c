@@ -382,6 +382,22 @@ int main(void) {
 
     print_debug("Decoder Booted!\n");
 
+    #ifdef CRYPTO_EXAMPLE
+
+    // print_debug("\n\nCrypto Example\n");
+
+    // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
+    // uint8_t key[KEY_SIZE];
+    // uint8_t decrypted[BLOCK_SIZE];
+    // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // print_debug(decrypted);
+
+    // print_debug("\n\n");
+
+    crypto_example();
+
+    #endif
+
     // process commands forever
     while (1) {
         print_debug("Ready\n");
