@@ -2,7 +2,7 @@
 #define __TYPES__
 
 #include <stdint.h>
-
+#include <stdbool.h>
 
 /**********************************************************
  ******************* PRIMITIVE TYPES **********************
@@ -27,7 +27,7 @@
 
 
 
-#define SECRET_BASE_ADDRESS //TODO: some address
+#define SECRET_BASE_ADDRESS MXC_FLASH_MEM_BASE+MXC_FLASH_MEM_SIZE-3*MXC_FLASH_PAGE_SIZE
 
 
 

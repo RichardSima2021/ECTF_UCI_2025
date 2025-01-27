@@ -140,8 +140,8 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
         return -1;
     }
 
-    flash_simple_erase_page(FLASH_STATUS_ADDR);
-    flash_simple_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_erase_page(FLASH_STATUS_ADDR);
+    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
@@ -193,7 +193,7 @@ void init() {
     flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -214,8 +214,8 @@ void init() {
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
-        flash_simple_erase_page(FLASH_STATUS_ADDR);
-        flash_simple_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+        flash_erase_page(FLASH_STATUS_ADDR);
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     }
 
     // Initialize the uart peripheral to enable serial I/O
@@ -280,7 +280,7 @@ int main(void) {
 
     // initialize the device
     init();
-    init_secret();
+    // init_secret();
 
     print_debug("Decoder Booted!\n");
 
@@ -305,15 +305,11 @@ int main(void) {
         case LIST_MSG:
             STATUS_LED_CYAN();
 
-            #ifdef CRYPTO_EXAMPLE
-                // Run the crypto example
-                // TODO: Remove this from your design
-                crypto_example();
-            #endif // CRYPTO_EXAMPLE
-
-            // Print the boot flag
-            // TODO: Remove this from your design
-            boot_flag();
+            // #ifdef CRYPTO_EXAMPLE
+            //     // Run the crypto example
+            //     // TODO: Remove this from your design
+            //     crypto_example();
+            // #endif // CRYPTO_EXAMPLE
             list_channels();
             break;
 

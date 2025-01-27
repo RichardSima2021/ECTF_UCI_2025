@@ -42,7 +42,7 @@ int uart_readbyte_raw(void);
  *      a list of return codes.
  *  @note maybe we should return a random error code to throw em off 
 */
-int uart_readbyte(void);
+uint8_t uart_readbyte(int *status);
 
 /** @brief Writes a byte to UART.
  * 
