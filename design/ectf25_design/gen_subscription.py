@@ -15,6 +15,11 @@ import json
 from pathlib import Path
 import struct
 
+from Cryptodome.Cipher import AES
+from Cryptodome.Hash import SHA256
+from Cryptodome.Random import get_random_bytes
+from Cryptodome.Util.Padding import pad, unpad
+
 from loguru import logger
 
 
@@ -33,6 +38,7 @@ def gen_subscription(
     """
     # TODO: Update this function to provide a Decoder with whatever data it needs to
     #   subscribe to a new channel
+    
 
     # Load the json of the secrets file
     secrets = json.loads(secrets)
@@ -44,6 +50,33 @@ def gen_subscription(
 
     # Pack the subscription. This will be sent to the decoder with ectf25.tv.subscribe
     return struct.pack("<IQQI", device_id, start, end, channel)
+
+
+def interweave(sub_info, check_sum_channel):
+    if len(sub_info) != len(check_sum_channel):
+        raise ValueError("Both byte strings must be of the same length.")
+    
+    ret = bytearray()
+    
+    for b1, b2 in zip(sub_info, check_sum_channel):
+        # Interweave bits into two bytes because combining them into one exceeds a byte's capacity
+        interwoven_byte1 = 0
+        interwoven_byte2 = 0
+        for i in range(4):  # Only process 4 bits at a time
+            # Get two bits at a time from each input byte
+            bit1 = (b1 >> (7 - i)) & 1
+            bit2 = (b2 >> (7 - i)) & 1
+            bit3 = (b1 >> (3 - i)) & 1
+            bit4 = (b2 >> (3 - i)) & 1
+            # Append the bits to the first and second interwoven bytes
+            interwoven_byte1 = (interwoven_byte1 << 2) | (bit1 << 1) | bit2
+            interwoven_byte2 = (interwoven_byte2 << 2) | (bit3 << 1) | bit4
+        # Append the two interwoven bytes
+        ret.append(interwoven_byte1)
+        ret.append(interwoven_byte2)
+    
+    return bytes(ret)
+
 
 
 def parse_args():
