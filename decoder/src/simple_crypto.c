@@ -42,7 +42,9 @@ int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t *ciphertex
         return -1;
 
     // Set the key for encryption
-    result = wc_AesSetKey(&ctx, key, 16, NULL, AES_ENCRYPTION);
+    byte iv[16];
+    memset(iv, 0, 16);
+    result = wc_AesSetKey(&ctx, key, 16, iv, AES_ENCRYPTION);
     if (result != 0)
         return result; // Report error
 
