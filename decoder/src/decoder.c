@@ -120,6 +120,8 @@ typedef struct {
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
 
+channel_info_t subscription_list[MAX_CHANNEL_COUNT] 
+
 /**********************************************************
  ******************** REFERENCE FLAG **********************
  **********************************************************/
@@ -282,6 +284,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
     }
 
     // Find the first empty slot in the subscription array
+    // change this, now channel num is mapped to subscription_list indices?
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
             decoder_status.subscribed_channels[i].active = true;
