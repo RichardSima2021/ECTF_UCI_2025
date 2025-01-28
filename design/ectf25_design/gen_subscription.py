@@ -43,6 +43,12 @@ def gen_subscription(
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 
+    sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    check_sum_channel = secrets['checksum'][channel]
+
+    interwoven_bytestring = interweave(sub_info, check_sum_channel)
+    
+
     # You can use secrets generated using `gen_secrets` here like:
     # secrets["some_secrets"]
     # Which would return "EXAMPLE" in the reference design.
