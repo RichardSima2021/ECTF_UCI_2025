@@ -42,16 +42,6 @@ def gen_sec(file_name):
 #include "types.h"
 #include "advanced_flash.h"
 
-// Struct to hold channel-specific keys
-typedef struct secret_t {{
-    int channel_id;
-    char mask_key[16];
-    char msg_key[16];
-    char data_key[16];
-    char subscription_key[16];
-    char check_sum[24];
-}} secret_t;
-
 // Initializes all secret_t structs for all channels
 void init_secret()
 {{
