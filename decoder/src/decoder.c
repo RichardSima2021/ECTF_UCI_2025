@@ -53,6 +53,7 @@
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
+#define DEFAULT_CHANNEL_ID 0xFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
 
@@ -119,8 +120,6 @@ typedef struct {
 
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
-
-channel_info_t subscription_list[MAX_CHANNEL_COUNT] 
 
 /**********************************************************
  ******************** REFERENCE FLAG **********************
@@ -246,6 +245,42 @@ int extract(const unsigned char *intrwvn_msg, unsigned char *subscription_info, 
     return 0;  // Success
 }
 
+
+
+/** @brief Helper function to reset the channel info in subscribed_channels at index i
+ * 
+ *  @param i the index at which to reset channel info
+ * 
+*/
+void reset_channel(int i) {
+    decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
+    decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+    decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+    decoder_status.subscribed_channels[i].active = false;
+}
+
+/** @brief Helper function to check if duplicate channel ids exist which are active
+ * 
+ *  @note Should always return false
+ * 
+ *  @return 0 upon none found, 1 if found duplicate
+*/
+bool found_duplicate_channel_id() {
+    int i;
+    int j;
+    for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
+        for (j = 0; j < MAX_CHANNEL_COUNT; j++) {
+            if (i != j) {
+                if (decoder_status.subscribed_channels[i].id == decoder_status.subscribed_channels[j].id && decoder_status.subscribed_channels[i].active && decoder_status.subscribed_channels[j].active) {
+                    return -1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+
 /** @brief Updates the channel subscription for a subset of channels.
  *
  *  @param pkt_len The length of the incoming packet
@@ -257,7 +292,8 @@ int extract(const unsigned char *intrwvn_msg, unsigned char *subscription_info, 
  *
  *  @return 0 upon success.  -1 if error.
 */
-int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update) {
+//                                         this update info will be updated later to be encoded input
+int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_info) {
     /*   
     2. Update subscription 
         1. Decrypt subscription using subscription key
@@ -265,6 +301,11 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
         3. Extract subscription_info from interweaved message
         4. Update subscription
     */
+
+    // TODO: implement
+    // decode(encoded_sub_packet, decoded_sub_packet);
+    // extract(decoded_sub_packet, update_info);
+    // verify_sub_packet(update_info)
 
     int i;
 
@@ -274,22 +315,49 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
         return -1;
     }
 
+    bool modified = false;
     // Find the first empty slot in the subscription array
-    // change this, now channel num is mapped to subscription_list indices?
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
+        
+        // if this channel is the same ID as incoming channel info or it's not an active channel
         if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
-            decoder_status.subscribed_channels[i].active = true;
-            decoder_status.subscribed_channels[i].id = update->channel;
-            decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
-            decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
-            break;
+            // already performed modification && found duplicate channel id
+            if (modified && decoder_status.subscribed_channels[i].id == update->channel) {
+                reset_channel(i);
+            }
+            // already performed modification and found inactive channel 
+            else if (modified) {
+                // don't do anything
+                continue;
+            }
+            // have not performed update
+            else {
+                // set channel status to true
+                decoder_status.subscribed_channels[i].active = true;
+                // set channel id to incoming id
+                decoder_status.subscribed_channels[i].id = update->channel;
+                // set start timestamp
+                decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
+                // set end timestamp
+                decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
+                modified = true;
+            }
+            
         }
+        // we should 
     }
 
     // If we do not have any room for more subscriptions
     if (i == MAX_CHANNEL_COUNT) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - max subscriptions installed\n");
+        return -1;
+    }
+
+    // If we find duplicate channel ids (this should not happen)
+    if (found_duplicate_channel_id()) {
+        STATUS_LED_RED();
+        print_error("Channel list should not contain duplicates\n");
         return -1;
     }
 
@@ -362,6 +430,7 @@ void init() {
             subscription[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
+            subscription[i].id = DEFAULT_CHANNEL_ID;
         }
 
         // Write the starting channel subscriptions into flash.
@@ -493,7 +562,7 @@ int main(void) {
         // Handle subscribe command
         case SUBSCRIBE_MSG:
             STATUS_LED_YELLOW();
-            update_subscription(pkt_len, (subscription_update_packet_t *)uart_buf);
+            update_subscription(pkt_len, (update_packet_t *)uart_buf);
             break;
 
         // Handle bad command
