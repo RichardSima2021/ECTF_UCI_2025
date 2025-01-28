@@ -135,3 +135,20 @@ int flash_write(uint32_t address, void *buffer, uint32_t len, char *key) {
 
 //     return error;
 // }
+
+
+// /**
+//  * @brief Write Flash Secret
+//  * @param s: char*, pointer to a 16 byte string to write, defaulted to offset 9 (for the channel id, for example)
+//  */
+// int write_flash_secret(char* secret) {
+//     //First retrieve the channel ID to determine the offset
+//     int channel_id=9;
+//     //then calculate the memory offset from this channel id
+//     uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+
+//     //now I need to write into this memory address // the key is not done yet
+//     int error = MXC_FLC_Write(address, 16, secret);
+
+//     return error;
+// }
