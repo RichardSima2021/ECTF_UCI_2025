@@ -57,6 +57,11 @@
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
 
+// These are some temperory keys for developing purposes. Need to be deleted later
+#define Mask_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
+#define Message_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
+#define Data_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
+
 /**********************************************************
  ********************* STATE MACROS ***********************
  **********************************************************/
@@ -279,8 +284,33 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     c1_len = new_frame->c1_len;
     c2_len = new_frame->c2_len;
 
-    // Encrpt the authenticate
+    // Todo: Decrypt c1 and c2, and validate timestamps
 
+    // Decrypt c1 first
+    // Construct the key for c1
+    // XOR mask key with the timestamp
+
+
+    // Hash the the XOR result from the previous step
+
+
+    // XOR the hash result with message key to get the decryption key for c1
+
+
+    // Decrypt c1 with the decryption key and get timestamp prime
+
+    
+    // Start to decrypt c2
+    // Construct the key for c2
+    // Extract nounce from the timestamp prime
+
+
+    // XOR data key with the nounce to get the decryption key for c2
+
+
+    // Decrypt c2 with the decryption key and get the frame data
+    
+    
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
