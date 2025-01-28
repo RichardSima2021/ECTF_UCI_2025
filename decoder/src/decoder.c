@@ -232,10 +232,12 @@ int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subs
                   Is this safe?
     */
 
+    char temp_subscription_arr[24];
+
     // Extract the interwoven message into their respective character arrays
     for (int i = 0; i < 48; i++) {
         if (i % 2 == 0) {
-            subscription_info[i / 2] = intrwvn_msg[i];
+            temp_subscription_arr[i / 2] = intrwvn_msg[i];
         }
         else {
             checksum[i / 2] = intrwvn_msg[i];
@@ -243,9 +245,25 @@ int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subs
     }
 
     // Null-terminate the output strings
-    subscription_info[24] = '\0';
+    temp_subscription_arr[24] = '\0';
     checksum[24] = '\0';
 
+    // Copy the temporary subscription array into the subscription_info struct
+    /*
+        timestamp_t uint64_t
+        channel_id_t uint32_t
+        decoder_id_t uint32_t
+
+        |   channel  | decoder_id  | start_timestamp | end_timestamp  |
+        |   4 bytes  |   4 bytes   |     8 bytes     |    8 bytes     |
+    */
+
+    // Pull individual values from temp_subscription_arr
+    subscription_info->channel = (temp_subscription_arr[0] - '0') * 1000 + (temp_subscription_arr[1] - '0') * 100 + (temp_subscription_arr[2] - '0') * 10 + (temp_subscription_arr[3] - '0');
+    subscription_info->decoder_id = (temp_subscription_arr[4] - '0') * 1000 + (temp_subscription_arr[5] - '0') * 100 + (temp_subscription_arr[6] - '0') * 10 + (temp_subscription_arr[7] - '0');
+    subscription_info->start_timestamp = (temp_subscription_arr[8] - '0') * 10000000 + (temp_subscription_arr[9] - '0') * 1000000 + (temp_subscription_arr[10] - '0') * 100000 + (temp_subscription_arr[11] - '0') * 10000 + (temp_subscription_arr[12] - '0') * 1000 + (temp_subscription_arr[13] - '0') * 100 + (temp_subscription_arr[14] - '0') * 10 + (temp_subscription_arr[15] - '0');
+    subscription_info->end_timestamp = (temp_subscription_arr[16] - '0') * 10000000 + (temp_subscription_arr[17] - '0') * 1000000 + (temp_subscription_arr[18] - '0') * 100000 + (temp_subscription_arr[19] - '0') * 10000 + (temp_subscription_arr[20] - '0') * 1000 + (temp_subscription_arr[21] - '0') * 100 + (temp_subscription_arr[22] - '0') * 10 + (temp_subscription_arr[23] - '0');
+    
     return 0;  // Success
 }
 
@@ -272,19 +290,12 @@ void reset_channel(int i) {
 bool found_duplicate_channel_id() {
     int i;
     int j;
-    channel_status_t *channel_list = decoder_status.subscribed_channels;
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
-        if (!channel_list[i].active) {
-            // skip inactive
-            continue;
-        }
-        for (j = i + 1; j < MAX_CHANNEL_COUNT; j++) {
-            if (!channel_list[j].active) {
-                // skip inactive
-                continue;
-            }
-            if (channel_list[i].id == channel_list[j].id) {
-                return 1;
+        for (j = 0; j < MAX_CHANNEL_COUNT; j++) {
+            if (i != j) {
+                if (decoder_status.subscribed_channels[i].id == decoder_status.subscribed_channels[j].id && decoder_status.subscribed_channels[i].active && decoder_status.subscribed_channels[j].active) {
+                    return -1;
+                }
             }
         }
     }
@@ -320,7 +331,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
 
     int i;
 
-    if (update_info->channel == EMERGENCY_CHANNEL) {
+    if (update->channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
@@ -331,9 +342,9 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
-        if (decoder_status.subscribed_channels[i].id == update_info->channel || !decoder_status.subscribed_channels[i].active) {
+        if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
             // already performed modification && found duplicate channel id
-            if (modified && decoder_status.subscribed_channels[i].id == update_info->channel) {
+            if (modified && decoder_status.subscribed_channels[i].id == update->channel) {
                 reset_channel(i);
             }
             // already performed modification and found inactive channel 
@@ -346,11 +357,11 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
                 // set channel status to true
                 decoder_status.subscribed_channels[i].active = true;
                 // set channel id to incoming id
-                decoder_status.subscribed_channels[i].id = update_info->channel;
+                decoder_status.subscribed_channels[i].id = update->channel;
                 // set start timestamp
-                decoder_status.subscribed_channels[i].start_timestamp = update_info->start_timestamp;
+                decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
                 // set end timestamp
-                decoder_status.subscribed_channels[i].end_timestamp = update_info->end_timestamp;
+                decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
                 modified = true;
             }
             
@@ -530,9 +541,6 @@ int main(void) {
     crypto_example();
 
     #endif
-
-    // For debugging:
-    // decode(pkt_len, (frame_packet_t *)uart_buf);
 
     // process commands forever
     while (1) {
