@@ -334,15 +334,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     channel_id_t channel;
     timestamp_t timestamp;
 
-    /*
-    typedef struct{
-        channel_id_t channel;
-        timestamp_t timestamp;
-        uint8_t iv[KEY_SIZE];
-        uint8_t c1[C1_LENGTH];
-        uint8_t c2[FRAME_SIZE*2];
-    } encrypted_frame_packet_t;
-    */
 
     // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
@@ -351,27 +342,25 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Todo: Decrypt c1 and c2, and validate timestamps
 
     // Decrypt c1 first
-    // uint8_t mask_key[16], msg_key[16], data_key[16];
-    // uint8_t mask_xor_ts[16], hash_key[16], c1_decryption_key[16], c2_decryption_key[16];
     uint8_t ts_prime[24];
     uint8_t nonce[16];
     uint8_t frame_data[64]; // Assuming max frame size is 64 bytes
+    uint8_t mask_key[KEY_SIZE] = Mask_key;
+    uint8_t message_key[KEY_SIZE] = Message_key;
+    uint8_t data_key[KEY_SIZE] = Data_key;
 
     // Load keys (replace with your key loading logic)
-    // memcpy(mask_key, get_mask_key(channel), 16);
-    // memcpy(msg_key, get_msg_key(channel), 16);
-    // memcpy(data_key, get_data_key(channel), 16);
     
     // Construct the key for c1
     // XOR mask key with the timestamp
     uint8_t c1_key[KEY_SIZE] = {0};
     memcpy(c1_key, &timestamp, sizeof(timestamp));
-    xorArrays(c1_key, Mask_key, c1_key, KEY_SIZE);
+    xorArrays(c1_key, mask_key, c1_key, KEY_SIZE);
     // Hash the the XOR result from the previous step
     compute_hash(c1_key, KEY_SIZE, c1_key);
 
     // XOR the hash result with message key to get the decryption key for c1
-    xorArrays(c1_key, Message_key, KEY_SIZE);
+    xorArrays(c1_key, message_key, c1_key, KEY_SIZE);
 
     // Decrypt c1 with the decryption key and get timestamp prime
     decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
@@ -385,7 +374,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Construct the key for c2
     // XOR data key with the nounce to get the decryption key for c2
     uint8_t c2_key[KEY_SIZE] = {0};
-    xorArrays(nonce, Data_key, c2_key, KEY_SIZE);
+    xorArrays(nonce, data_key, c2_key, KEY_SIZE);
 
     // Calculate the length of c2
     int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
@@ -400,7 +389,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
         print_debug("Subscription Valid\n");
         /* The reference design doesn't need any extra work to decode, but your design likely will.
         *  Do any extra decoding here before returning the result to the host. */
-        // write_packet(DECODE_MSG, new_frame->data, frame_size);
+        write_packet(DECODE_MSG, frame_data, sizeof(frame_data));
         return 0;
     } else {
         STATUS_LED_RED();
