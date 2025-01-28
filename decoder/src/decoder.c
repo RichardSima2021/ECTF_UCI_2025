@@ -312,7 +312,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
         uint8_t iv[KEY_SIZE];
         uint8_t c1[C1_LENGTH];
         uint8_t c2[FRAME_SIZE*2];
-} encrypted_frame_packet_t;
+    } encrypted_frame_packet_t;
     */
 
     // Get the plain text info from the encrypted frame
@@ -322,61 +322,47 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Todo: Decrypt c1 and c2, and validate timestamps
 
     // Decrypt c1 first
-    uint8_t mask_key[16], msg_key[16], data_key[16];
-    uint8_t mask_xor_ts[16], hash_key[16], c1_decryption_key[16], c2_decryption_key[16];
-    uint8_t ts_prime[16];
+    // uint8_t mask_key[16], msg_key[16], data_key[16];
+    // uint8_t mask_xor_ts[16], hash_key[16], c1_decryption_key[16], c2_decryption_key[16];
+    uint8_t ts_prime[24];
     uint8_t nonce[16];
     uint8_t frame_data[64]; // Assuming max frame size is 64 bytes
 
     // Load keys (replace with your key loading logic)
-    memcpy(mask_key, get_mask_key(channel), 16);
-    memcpy(msg_key, get_msg_key(channel), 16);
-    memcpy(data_key, get_data_key(channel), 16);
+    // memcpy(mask_key, get_mask_key(channel), 16);
+    // memcpy(msg_key, get_msg_key(channel), 16);
+    // memcpy(data_key, get_data_key(channel), 16);
     
     // Construct the key for c1
     // XOR mask key with the timestamp
-    uint8_t ts_bytes[16] = {0};
-    memcpy(ts_bytes, &timestamp, sizeof(timestamp)); // Ensure proper alignment
-    uint8_t *mask_xor_ts_ptr = (uint8_t *)xorArrays((int *)mask_key, (int *)ts_bytes, 16 / sizeof(int));
-
-    if (!mask_xor_ts_ptr) {
-        print_error("Failed to allocate memory for XOR operation.");
-        return -1;
-    }
-    memcpy(mask_xor_ts, mask_xor_ts_ptr, 16);
-    free(mask_xor_ts_ptr);
-
+    uint8_t c1_key[KEY_SIZE] = {0};
+    memcpy(c1_key, &timestamp, sizeof(timestamp));
+    xorArrays(c1_key, Mask_key, c1_key, KEY_SIZE);
     // Hash the the XOR result from the previous step
-    compute_hash(mask_xor_ts, hash_key);
+    compute_hash(c1_key, KEY_SIZE, c1_key);
 
     // XOR the hash result with message key to get the decryption key for c1
-    uint8_t *c1_decryption_key_ptr = (uint8_t *)xorArrays((int *)hash_key, (int *)msg_key, 16 / sizeof(int));
-    if (!c1_decryption_key_ptr) {
-        print_error("Failed to allocate memory for XOR operation.");
-        return -1;
-    }
-    memcpy(c1_decryption_key, c1_decryption_key_ptr, 16);
-    free(c1_decryption_key_ptr);
+    xorArrays(c1_key, Message_key, KEY_SIZE);
 
     // Decrypt c1 with the decryption key and get timestamp prime
-    decrypt_sym(c1_decryption_key, C1_LENGTH, new_frame->iv, new_frame->c1, ts_prime);
+    decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
 
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
-    memcpy(nonce + 8, ts_prime + 8, 8);
+    memcpy(nonce + 8, ts_prime + 16, 8);
 
 
     // Start to decrypt c2
     // Construct the key for c2
     // XOR data key with the nounce to get the decryption key for c2
-    uint8_t *c2_key_ptr = (uint8_t*) xorArrays((int*)nonce, (int*)data_key, 16 / sizeof(int));
-    memcpy(c2_decryption_key, c2_key_ptr, 16);
+    uint8_t c2_key[KEY_SIZE] = {0};
+    xorArrays(nonce, Data_key, c2_key, KEY_SIZE);
 
     // Calculate the length of c2
     int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
 
     // Decrypt c2 with the decryption key and get the frame data
-    decrypt_sym(c2_decryption_key, new_frame->iv, new_frame->c2, c2_length , frame_data);
+    decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
     
 
     // Check that we are subscribed to the channel...
