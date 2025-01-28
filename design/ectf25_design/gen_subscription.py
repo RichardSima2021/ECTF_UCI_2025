@@ -22,6 +22,8 @@ from Cryptodome.Util.Padding import pad, unpad
 
 from loguru import logger
 
+from encoder import Encoder
+
 
 def gen_subscription(
     secrets: bytes, device_id: int, start: int, end: int, channel: int
@@ -39,6 +41,7 @@ def gen_subscription(
     # TODO: Update this function to provide a Decoder with whatever data it needs to
     #   subscribe to a new channel
     
+    encoder = Encoder(secrets)
 
     # Load the json of the secrets file
     secrets = json.loads(secrets)
@@ -50,11 +53,11 @@ def gen_subscription(
     
     
     
-    encrypted_data = encrypt(interwoven_bytestring)
+    encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
     
     
-    
-    return encrypt(sub_key, data)
+    # need fix: need to get proper sub_key
+    return encrypt(sub_key, secrets, encoder, encrypted_data)
 
 
 def interweave(sub_info, check_sum_channel):
@@ -82,17 +85,17 @@ def interweave(sub_info, check_sum_channel):
     
     return bytes(ret)
 
-def get_channel_key(channel):
+def get_channel_key(channel, secrets):
     if channel not in secrets['channels']:
         raise ValueError("Channel not found in secrets")
     return secrets['channel_key_' + str(channel)]
 
-def encrypt(interwoven_bytestring):
+def encrypt(interwoven_bytestring, secrets, encoder, channel):
     data = pad(interwoven_bytestring, 16)
-    channel_key = get_channel_key(channel)
+    channel_key = get_channel_key(channel, secrets)
     iv = secret_gen.token_bytes(16)
 
-    cipher = self.sym_encrypt(channel_key, iv, data)
+    cipher = encoder.sym_encrypt(channel_key, iv, data)
 
     return cipher + iv
     
