@@ -44,7 +44,7 @@ def gen_subscription(
     secrets = json.loads(secrets)
 
     sub_info = struct.pack("<IQQI", device_id, start, end, channel)
-    check_sum_channel = secrets['checksum'][channel]
+    check_sum_channel = secrets['checksum'][channel].encode('utf-8')
 
     interwoven_bytestring = interweave(sub_info, check_sum_channel)
     
