@@ -209,12 +209,48 @@ int list_channels() {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(const unsigned char *input, flash_entry_t *output) {
-    // Expecting 48 bytes (?) from interwoven message
+int extract(const unsigned char *input, unsigned char *output) {
+    // Validate input/output pointers
+    if (input == NULL) {
+        return -1;  // Return error code
+    }
 
-    // How is it interwoven?
-    // Where is the checksum?
-    // What to return? Multiple flash entries?
+    // Expecting 48 bytes from interwoven message
+    // 24 bytes for the subscription
+    // 24 bytes for the checksum
+
+    /*
+        Questions:
+            How is it interwoven? - Alternates between subscription info and checksum every byte. Starts with subs.
+            Where is the checksum? Should I return it too?
+            What to return? Multiple flash entries? (Security issue; Ask John)
+    */
+
+    // Make a subscription info buffer
+    unsigned char subscription_info_buffer[24];
+    // Make a checksum buffer
+    unsigned char checksum_buff[24];
+
+    // Alternates between subscription byte and checksum byte.
+    // Could do a positive-negative integer split.
+    int status = 1;
+    int sub_ptr = 0;
+    int chk_ptr = 0;
+
+    for (int i = 0; i < 48; i++) {
+        if (status == 1) {
+            subscription_info_buff[sub_ptr] = input[i];
+            sub_ptr++;
+        }
+        else {
+            checksum_buff[i] = input[i];
+            chk_ptr++;
+        }
+        status *= -1;
+    }
+
+    // Do the return
+    return 0;
 }
 
 /** @brief Updates the channel subscription for a subset of channels.
