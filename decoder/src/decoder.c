@@ -54,6 +54,7 @@
 #define FRAME_SIZE 64
 #define KEY_SIZE 16
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
+#define C1_LENGHT 32
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
 
@@ -86,11 +87,9 @@ typedef struct {
 typedef struct{
     channel_id_t channel;
     timestamp_t timestamp;
-    uint32_t c1_len;
-    uint32_t c2_len;
     uint8_t iv[KEY_SIZE];
-    uint8_t c1[FRAME_SIZE];
-    uint8_t c2[FRAME_SIZE];
+    uint8_t c1[C1_LENGHT];
+    uint8_t c2[FRAME_SIZE*2];
 } encrypted_frame_packet_t;
 
 typedef struct {
@@ -305,14 +304,10 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     uint16_t frame_size;
     channel_id_t channel;
     timestamp_t timestamp;
-    uint16_t c1_len;
-    uint16_t c2_len;
 
     // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
     timestamp = new_frame->timestamp;
-    c1_len = new_frame->c1_len;
-    c2_len = new_frame->c2_len;
 
     // Todo: Decrypt c1 and c2, and validate timestamps
 
@@ -354,7 +349,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     free(c1_decryption_key_ptr);
 
     // Decrypt c1 with the decryption key and get timestamp prime
-    decrypt_sym(c1_decryption_key, new_frame->iv, new_frame->c1, c1_len, ts_prime);
+    decrypt_sym(c1_decryption_key, C1_LENGHT, new_frame->iv, new_frame->c1, ts_prime);
 
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
