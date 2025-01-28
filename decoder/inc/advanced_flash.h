@@ -9,7 +9,10 @@
 #define ADVANCED_FLASH_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "types.h"
+
+#include "simple_crypto.h"
 
 
 /**
