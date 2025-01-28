@@ -186,6 +186,19 @@ void boot_flag(void) {
     print_debug(output_buf);
 }
 
+int* xorArrays(const int *arr1, const int *arr2, size_t length) {
+    if (length == 0) {
+        return NULL;
+    }
+    int *result = (int *)malloc(length * sizeof(int));
+    if (!result) {
+        return NULL;
+    }
+    for (size_t i = 0; i < length; i++) {
+        result[i] = arr1[i] ^ arr2[i];
+    }
+    return result;
+}
 
 /**********************************************************
  ********************* CORE FUNCTIONS *********************
