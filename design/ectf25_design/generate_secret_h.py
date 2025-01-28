@@ -81,7 +81,7 @@ void init_secret()
 """
 # ------------------------------------------------- End of generating structs --------------------------------------------------------------- #
 
-        with open("secret.h", "w") as header_file:
+        with open("./secrets/secret.h", "w") as header_file:
             header_file.write(secret_h)
     
     except FileNotFoundError:
