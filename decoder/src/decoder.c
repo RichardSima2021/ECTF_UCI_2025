@@ -24,6 +24,9 @@
 
 #include "simple_uart.h"
 
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+
 /* Code between this #ifdef and the subsequent #endif will
 *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
 *  the projectk.mk file. */
@@ -214,6 +217,32 @@ void xorArrays(uint8_t *arr1, uint8_t *arr2, u_int8_t* result, size_t length) {
         result[i] = temporary1[i] ^ temporary2[i];
     }
     return result;
+}
+
+void compute_hash(const unsigned char *data, size_t length, unsigned char *hash) {
+    wc_Sha256 sha256;
+
+    if (wc_InitSha256(&sha256) != 0) {
+        fprintf(stderr, "Failed to initialize SHA-256 context!\n");
+        return; 
+    }
+
+    if (wc_Sha256Update(&sha256, data, length) != 0) {
+        fprintf(stderr, "Failed to update SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    unsigned char full_hash[WC_SHA256_DIGEST_SIZE];
+    if (wc_Sha256Final(&sha256, full_hash) != 0) {
+        fprintf(stderr, "Failed to finalize SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    memcpy(hash, full_hash, 16);
+
+    wc_Sha256Free(&sha256);
 }
 
 /**********************************************************
