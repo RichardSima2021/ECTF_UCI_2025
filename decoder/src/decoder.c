@@ -186,16 +186,33 @@ void boot_flag(void) {
     print_debug(output_buf);
 }
 
-int* xorArrays(const int *arr1, const int *arr2, size_t length) {
-    if (length == 0) {
-        return NULL;
+void xorArrays(uint8_t *arr1, uint8_t *arr2, u_int8_t* result, size_t length) {
+    uint8_t temporary1[length];
+    uint8_t temporary2[length];
+    int pad_length;
+    if(sizeof(arr1) >= length) {
+        memcpy(temporary1, arr1, length);
     }
-    int *result = (int *)malloc(length * sizeof(int));
-    if (!result) {
-        return NULL;
+    else{
+        pad_length = length - sizeof(arr1);
+        memcpy(temporary1, arr1, sizeof(arr1));
+        for (int i = 0; i < pad_length; i++) {
+            temporary1[sizeof(arr1) + i] = 0x00;
+        }
     }
+    if(sizeof(arr2) >= length) {
+        memcpy(temporary2, arr2, length);
+    }
+    else{
+        pad_length = length - sizeof(arr2);
+        memcpy(temporary2, arr2, sizeof(arr2));
+        for (int i = 0; i < pad_length; i++) {
+            temporary2[sizeof(arr2) + i] = 0x00;
+        }
+    }
+
     for (size_t i = 0; i < length; i++) {
-        result[i] = arr1[i] ^ arr2[i];
+        result[i] = temporary1[i] ^ temporary2[i];
     }
     return result;
 }
@@ -331,7 +348,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
         print_debug("Subscription Valid\n");
         /* The reference design doesn't need any extra work to decode, but your design likely will.
         *  Do any extra decoding here before returning the result to the host. */
-        write_packet(DECODE_MSG, new_frame->data, frame_size);
+        // write_packet(DECODE_MSG, new_frame->data, frame_size);
         return 0;
     } else {
         STATUS_LED_RED();
