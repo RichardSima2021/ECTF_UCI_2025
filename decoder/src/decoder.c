@@ -120,7 +120,7 @@ typedef struct {
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
 
-channel_info_t subscription_list[MAX_CHANNEL_COUNT] 
+channel_info_t subscription_list[MAX_CHANNEL_COUNT];
 
 /**********************************************************
  ******************** REFERENCE FLAG **********************
@@ -227,6 +227,10 @@ int extract(const unsigned char *intrwvn_msg, unsigned char *subscription_info, 
             How is it interwoven? - Alternates between subscription info and checksum every byte. Starts with subs.
             Where is the checksum? Should I return it too?
             What to return? Multiple flash entries? (Security issue; Ask John)
+            Another security issue:
+                - As it stands, arguments fed into this function are to be
+                  staticly allocated character arrays stored in stack.
+                  Is this safe?
     */
 
     // Extract the interwoven message into their respective character arrays
@@ -450,6 +454,9 @@ int main(void) {
     crypto_example();
 
     #endif
+
+    // For debugging:
+    // decode(pkt_len, (frame_packet_t *)uart_buf);
 
     // process commands forever
     while (1) {
