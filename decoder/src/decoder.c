@@ -272,12 +272,19 @@ void reset_channel(int i) {
 bool found_duplicate_channel_id() {
     int i;
     int j;
+    channel_status_t *channel_list = decoder_status.subscribed_channels;
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
-        for (j = 0; j < MAX_CHANNEL_COUNT; j++) {
-            if (i != j) {
-                if (decoder_status.subscribed_channels[i].id == decoder_status.subscribed_channels[j].id && decoder_status.subscribed_channels[i].active && decoder_status.subscribed_channels[j].active) {
-                    return -1;
-                }
+        if (!channel_list[i].active) {
+            // skip inactive
+            continue;
+        }
+        for (j = i + 1; j < MAX_CHANNEL_COUNT; j++) {
+            if (!channel_list[j].active) {
+                // skip inactive
+                continue;
+            }
+            if (channel_list[i].id == channel_list[j].id) {
+                return 1;
             }
         }
     }
@@ -313,7 +320,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
 
     int i;
 
-    if (update->channel == EMERGENCY_CHANNEL) {
+    if (update_info->channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
@@ -324,9 +331,9 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
-        if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
+        if (decoder_status.subscribed_channels[i].id == update_info->channel || !decoder_status.subscribed_channels[i].active) {
             // already performed modification && found duplicate channel id
-            if (modified && decoder_status.subscribed_channels[i].id == update->channel) {
+            if (modified && decoder_status.subscribed_channels[i].id == update_info->channel) {
                 reset_channel(i);
             }
             // already performed modification and found inactive channel 
@@ -339,11 +346,11 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
                 // set channel status to true
                 decoder_status.subscribed_channels[i].active = true;
                 // set channel id to incoming id
-                decoder_status.subscribed_channels[i].id = update->channel;
+                decoder_status.subscribed_channels[i].id = update_info->channel;
                 // set start timestamp
-                decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
+                decoder_status.subscribed_channels[i].start_timestamp = update_info->start_timestamp;
                 // set end timestamp
-                decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
+                decoder_status.subscribed_channels[i].end_timestamp = update_info->end_timestamp;
                 modified = true;
             }
             
