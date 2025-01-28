@@ -13,11 +13,10 @@ Copyright: Copyright (c) 2025 The MITRE Corporation
 import argparse
 import json
 import os
-import generate_secret_h
+from . import generate_secret_h as generate_secret_h
 from pathlib import Path
 
 import secrets as secret_gen
-
 from loguru import logger
 
 def gen_secrets(channels: list[int]) -> bytes:
@@ -61,12 +60,6 @@ def gen_secrets(channels: list[int]) -> bytes:
             "check_sum": str(os.urandom(24)),  # 24 bytes
         }
 
-    for channel in channels:
-        # Generate secret for each channel
-
-        secrets[f'channel_key_{channel}'] = gen_channel_key()
-
-    
     # NOTE: if you choose to use JSON for your file type, you will not be able to
     # store binary data, and must either use a different file type or encode the
     # binary data to hex, base64, or another type of ASCII-only encoding
