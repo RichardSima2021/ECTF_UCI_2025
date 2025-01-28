@@ -48,14 +48,13 @@ def gen_subscription(
 
     interwoven_bytestring = interweave(sub_info, check_sum_channel)
     
-
-    # You can use secrets generated using `gen_secrets` here like:
-    # secrets["some_secrets"]
-    # Which would return "EXAMPLE" in the reference design.
-    # Please note that the secrets are READ ONLY at this sage!
-
-    # Pack the subscription. This will be sent to the decoder with ectf25.tv.subscribe
-    return struct.pack("<IQQI", device_id, start, end, channel)
+    
+    
+    encrypted_data = encrypt(interwoven_bytestring)
+    
+    
+    
+    return encrypt(sub_key, data)
 
 
 def interweave(sub_info, check_sum_channel):
@@ -82,6 +81,23 @@ def interweave(sub_info, check_sum_channel):
         ret.append(interwoven_byte2)
     
     return bytes(ret)
+
+def get_channel_key(channel):
+    if channel not in secrets['channels']:
+        raise ValueError("Channel not found in secrets")
+    return secrets['channel_key_' + str(channel)]
+
+def encrypt(interwoven_bytestring):
+    data = pad(interwoven_bytestring, 16)
+    channel_key = get_channel_key(channel)
+    iv = secret_gen.token_bytes(16)
+
+    cipher = self.sym_encrypt(channel_key, iv, data)
+
+    return cipher + iv
+    
+
+
 
 
 
@@ -144,27 +160,27 @@ def main():
 if __name__ == "__main__":
     main()
 
-    secrets = {'checksum':['abcdblablablaabcdblablab' for i in range(10)]}
-    device_id = 1
-    start = 2
-    end = 6
-    channel = 8
+    # secrets = {'checksum':['abcdblablablaabcdblablab' for i in range(10)]}
+    # device_id = 1
+    # start = 2
+    # end = 6
+    # channel = 8
     
-    sub_info = struct.pack("<IQQI", device_id, start, end, channel)
-    check_sum_channel = secrets['checksum'][channel].encode('utf-8')
+    # sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    # check_sum_channel = secrets['checksum'][channel].encode('utf-8')
 
-    print(type(sub_info))
-    print(sub_info)
-    print(type(check_sum_channel))
-    print(check_sum_channel)
-    print(len(sub_info), len(check_sum_channel))
+    # print(type(sub_info))
+    # print(sub_info)
+    # print(type(check_sum_channel))
+    # print(check_sum_channel)
+    # print(len(sub_info), len(check_sum_channel))
 
-    sub_info = bytes(24)
-    check_sum_channel = bytes([0xFF] * 24)
-    interwoven_bytestring = interweave(sub_info, check_sum_channel)
+    # sub_info = bytes(24)
+    # check_sum_channel = bytes([0xFF] * 24)
+    # interwoven_bytestring = interweave(sub_info, check_sum_channel)
 
-    print(interwoven_bytestring)
+    # print(interwoven_bytestring)
 
-    print(' '.join(f"{byte:08b}" for byte in sub_info), end='\n\n')
-    print(' '.join(f"{byte:08b}" for byte in check_sum_channel), end='\n\n')
-    print(' '.join(f"{byte:08b}" for byte in interwoven_bytestring), end='\n\n')
+    # print(' '.join(f"{byte:08b}" for byte in sub_info), end='\n\n')
+    # print(' '.join(f"{byte:08b}" for byte in check_sum_channel), end='\n\n')
+    # print(' '.join(f"{byte:08b}" for byte in interwoven_bytestring), end='\n\n')
