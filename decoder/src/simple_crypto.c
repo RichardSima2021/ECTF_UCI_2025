@@ -33,7 +33,7 @@
  *
  * @return 0 on success, -1 on bad length, other non-zero for other error
  */
-int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t *ciphertext) {
+int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t * iv, uint8_t *ciphertext) {
     Aes ctx; // Context for encryption
     int result; // Library result
 
@@ -42,7 +42,7 @@ int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t *ciphertex
         return -1;
 
     // Set the key for encryption
-    result = wc_AesSetKey(&ctx, key, 16, NULL, AES_ENCRYPTION);
+    result = wc_AesSetKey(&ctx, key, 16, iv, AES_ENCRYPTION);
     if (result != 0)
         return result; // Report error
 
@@ -69,7 +69,7 @@ int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t *ciphertex
  *
  * @return 0 on success, -1 on bad length, other non-zero for other error
  */
-int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t *plaintext) {
+int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t * iv, uint8_t *plaintext) {
     Aes ctx; // Context for decryption
     int result; // Library result
 
@@ -78,7 +78,7 @@ int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t *plaintex
         return -1;
 
     // Set the key for decryption
-    result = wc_AesSetKey(&ctx, key, 16, NULL, AES_DECRYPTION);
+    result = wc_AesSetKey(&ctx, key, 16, iv, AES_DECRYPTION);
     if (result != 0)
         return result; // Report error
 

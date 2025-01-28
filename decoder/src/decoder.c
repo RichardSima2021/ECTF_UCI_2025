@@ -52,6 +52,7 @@
 #define MAX_CHANNEL_COUNT 8
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
+#define KEY_SIZE 16
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
@@ -76,6 +77,16 @@ typedef struct {
     timestamp_t timestamp;
     uint8_t data[FRAME_SIZE];
 } frame_packet_t;
+
+typedef struct{
+    channel_id_t channel;
+    timestamp_t timestamp;
+    uint32_t c1_len;
+    uint32_t c2_len;
+    uint8_t iv[KEY_SIZE];
+    uint8_t c1[FRAME_SIZE];
+    uint8_t c2[FRAME_SIZE];
+} encrypted_frame_packet_t;
 
 typedef struct {
     decoder_id_t decoder_id;
@@ -254,17 +265,22 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
  *
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
-int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
+int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     char output_buf[128] = {0};
     uint16_t frame_size;
     channel_id_t channel;
+    timestamp_t timestamp;
+    uint16_t c1_len;
+    uint16_t c2_len;
 
-    // Frame size is the size of the packet minus the size of non-frame elements
-    frame_size = pkt_len - (sizeof(new_frame->channel) + sizeof(new_frame->timestamp));
+    // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
+    timestamp = new_frame->timestamp;
+    c1_len = new_frame->c1_len;
+    c2_len = new_frame->c2_len;
 
-    // The reference design doesn't use the timestamp, but you may want to in your design
-    // timestamp_t timestamp = new_frame->timestamp;
+    // Encrpt the authenticate
+
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
@@ -336,33 +352,33 @@ void crypto_example(void) {
 
     // This string is 16 bytes long including null terminator
     // This is the block size of included symmetric encryption
-    char *data = "Crypto Example!";
-    uint8_t ciphertext[BLOCK_SIZE];
-    uint8_t key[KEY_SIZE];
-    uint8_t hash_out[HASH_SIZE];
-    uint8_t decrypted[BLOCK_SIZE];
+    // char *data = "Crypto Example!";
+    // uint8_t ciphertext[BLOCK_SIZE];
+    // uint8_t key[KEY_SIZE];
+    // uint8_t hash_out[HASH_SIZE];
+    // uint8_t decrypted[BLOCK_SIZE];
 
-    char output_buf[128] = {0};
+    // char output_buf[128] = {0};
 
-    // Zero out the key
-    bzero(key, BLOCK_SIZE);
+    // // Zero out the key
+    // bzero(key, BLOCK_SIZE);
 
-    // Encrypt example data and print out
-    encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
-    print_debug("Encrypted data: \n");
-    print_hex_debug(ciphertext, BLOCK_SIZE);
+    // // Encrypt example data and print out
+    // encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
+    // print_debug("Encrypted data: \n");
+    // print_hex_debug(ciphertext, BLOCK_SIZE);
 
-    // Hash example encryption results
-    hash(ciphertext, BLOCK_SIZE, hash_out);
+    // // Hash example encryption results
+    // hash(ciphertext, BLOCK_SIZE, hash_out);
 
-    // Output hash result
-    print_debug("Hash result: \n");
-    print_hex_debug(hash_out, HASH_SIZE);
+    // // Output hash result
+    // print_debug("Hash result: \n");
+    // print_hex_debug(hash_out, HASH_SIZE);
 
-    // Decrypt the encrypted message and print out
-    decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-    sprintf(output_buf, "Decrypted message: %s\n", decrypted);
-    print_debug(output_buf);
+    // // Decrypt the encrypted message and print out
+    // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // sprintf(output_buf, "Decrypted message: %s\n", decrypted);
+    // print_debug(output_buf);
 }
 #endif  //CRYPTO_EXAMPLE
 
@@ -434,7 +450,7 @@ int main(void) {
         // Handle decode command
         case DECODE_MSG:
             STATUS_LED_PURPLE();
-            decode(pkt_len, (frame_packet_t *)uart_buf);
+            decode(pkt_len, (encrypted_frame_packet_t *)uart_buf);
             break;
 
         // Handle subscribe command
