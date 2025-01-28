@@ -206,14 +206,15 @@ int list_channels() {
 
 /** @brief Extracts subscription information and checksum from interwoven message.
  * 
- *  @param input A pointer to the beginning of our interwoven subscription information
- *  @param output A pointer to the output of the extracted subscription information
+ *  @param intrwvn_msg A pointer to the beginning of our interwoven subscription information
+ *  @param subscription_info A pointer to the output of the extracted subscription information
+ *  @param checksum A pointer to the output of the extracted checksum
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(const unsigned char *input, unsigned char *output) {
-    // Validate input/output pointers
-    if (input == NULL) {
+int extract(const unsigned char *intrwvn_msg, unsigned char *subscription_info, unsigned char *checksum) {
+    // Validate intrwvn_msg/output pointers
+    if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
         return -1;  // Return error code
     }
 
@@ -228,31 +229,21 @@ int extract(const unsigned char *input, unsigned char *output) {
             What to return? Multiple flash entries? (Security issue; Ask John)
     */
 
-    // Make a subscription info buffer
-    unsigned char subscription_info_buffer[24];
-    // Make a checksum buffer
-    unsigned char checksum_buff[24];
-
-    // Alternates between subscription byte and checksum byte.
-    // Could do a positive-negative integer split.
-    int status = 1;
-    int sub_ptr = 0;
-    int chk_ptr = 0;
-
+    // Extract the interwoven message into their respective character arrays
     for (int i = 0; i < 48; i++) {
-        if (status == 1) {
-            subscription_info_buff[sub_ptr] = input[i];
-            sub_ptr++;
+        if (i % 2 == 0) {
+            subscription_info[i / 2] = intrwvn_msg[i];
         }
         else {
-            checksum_buff[i] = input[i];
-            chk_ptr++;
+            checksum[i / 2] = intrwvn_msg[i];
         }
-        status *= -1;
     }
 
-    // Do the return
-    return 0;
+    // Null-terminate the output strings
+    subscription_info[24] = '\0';
+    checksum[24] = '\0';
+
+    return 0;  // Success
 }
 
 /** @brief Updates the channel subscription for a subset of channels.
