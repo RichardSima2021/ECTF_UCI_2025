@@ -143,3 +143,28 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    secrets = {'checksum':['abcdblablablaabcdblablab' for i in range(10)]}
+    device_id = 1
+    start = 2
+    end = 6
+    channel = 8
+    
+    sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    check_sum_channel = secrets['checksum'][channel].encode('utf-8')
+
+    print(type(sub_info))
+    print(sub_info)
+    print(type(check_sum_channel))
+    print(check_sum_channel)
+    print(len(sub_info), len(check_sum_channel))
+
+    sub_info = bytes(24)
+    check_sum_channel = bytes([0xFF] * 24)
+    interwoven_bytestring = interweave(sub_info, check_sum_channel)
+
+    print(interwoven_bytestring)
+
+    print(' '.join(f"{byte:08b}" for byte in sub_info), end='\n\n')
+    print(' '.join(f"{byte:08b}" for byte in check_sum_channel), end='\n\n')
+    print(' '.join(f"{byte:08b}" for byte in interwoven_bytestring), end='\n\n')
