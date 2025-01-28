@@ -54,7 +54,7 @@
 #define FRAME_SIZE 64
 #define KEY_SIZE 16
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
-#define C1_LENGHT 32
+#define C1_LENGTH 32
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
 
@@ -88,7 +88,7 @@ typedef struct{
     channel_id_t channel;
     timestamp_t timestamp;
     uint8_t iv[KEY_SIZE];
-    uint8_t c1[C1_LENGHT];
+    uint8_t c1[C1_LENGTH];
     uint8_t c2[FRAME_SIZE*2];
 } encrypted_frame_packet_t;
 
@@ -305,6 +305,16 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     channel_id_t channel;
     timestamp_t timestamp;
 
+    /*
+    typedef struct{
+        channel_id_t channel;
+        timestamp_t timestamp;
+        uint8_t iv[KEY_SIZE];
+        uint8_t c1[C1_LENGTH];
+        uint8_t c2[FRAME_SIZE*2];
+} encrypted_frame_packet_t;
+    */
+
     // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
     timestamp = new_frame->timestamp;
@@ -313,7 +323,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Decrypt c1 first
     uint8_t mask_key[16], msg_key[16], data_key[16];
-    uint8_t mask_xor_ts[16], hash_key[16], c1_decryption_key[16];
+    uint8_t mask_xor_ts[16], hash_key[16], c1_decryption_key[16], c2_decryption_key[16];
     uint8_t ts_prime[16];
     uint8_t nonce[16];
     uint8_t frame_data[64]; // Assuming max frame size is 64 bytes
@@ -349,7 +359,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     free(c1_decryption_key_ptr);
 
     // Decrypt c1 with the decryption key and get timestamp prime
-    decrypt_sym(c1_decryption_key, C1_LENGHT, new_frame->iv, new_frame->c1, ts_prime);
+    decrypt_sym(c1_decryption_key, C1_LENGTH, new_frame->iv, new_frame->c1, ts_prime);
 
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
@@ -358,14 +368,15 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Start to decrypt c2
     // Construct the key for c2
-    // Extract nounce from the timestamp prime
-
-
     // XOR data key with the nounce to get the decryption key for c2
+    uint8_t *c2_key_ptr = (uint8_t*) xorArrays((int*)nonce, (int*)data_key, 16 / sizeof(int));
+    memcpy(c2_decryption_key, c2_key_ptr, 16);
 
+    // Calculate the length of c2
+    int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
 
     // Decrypt c2 with the decryption key and get the frame data
-    
+    decrypt_sym(c2_decryption_key, new_frame->iv, new_frame->c2, c2_length , frame_data);
     
 
     // Check that we are subscribed to the channel...
