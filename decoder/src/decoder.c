@@ -317,19 +317,50 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Todo: Decrypt c1 and c2, and validate timestamps
 
     // Decrypt c1 first
+    uint8_t mask_key[16], msg_key[16], data_key[16];
+    uint8_t mask_xor_ts[16], hash_key[16], c1_decryption_key[16];
+    uint8_t ts_prime[16];
+    uint8_t nonce[16];
+    uint8_t frame_data[64]; // Assuming max frame size is 64 bytes
+
+    // Load keys (replace with your key loading logic)
+    memcpy(mask_key, get_mask_key(channel), 16);
+    memcpy(msg_key, get_msg_key(channel), 16);
+    memcpy(data_key, get_data_key(channel), 16);
+    
     // Construct the key for c1
     // XOR mask key with the timestamp
+    uint8_t ts_bytes[16] = {0};
+    memcpy(ts_bytes, &timestamp, sizeof(timestamp)); // Ensure proper alignment
+    uint8_t *mask_xor_ts_ptr = (uint8_t *)xorArrays((int *)mask_key, (int *)ts_bytes, 16 / sizeof(int));
 
+    if (!mask_xor_ts_ptr) {
+        print_error("Failed to allocate memory for XOR operation.");
+        return -1;
+    }
+    memcpy(mask_xor_ts, mask_xor_ts_ptr, 16);
+    free(mask_xor_ts_ptr);
 
     // Hash the the XOR result from the previous step
-
+    compute_hash(mask_xor_ts, hash_key);
 
     // XOR the hash result with message key to get the decryption key for c1
-
+    uint8_t *c1_decryption_key_ptr = (uint8_t *)xorArrays((int *)hash_key, (int *)msg_key, 16 / sizeof(int));
+    if (!c1_decryption_key_ptr) {
+        print_error("Failed to allocate memory for XOR operation.");
+        return -1;
+    }
+    memcpy(c1_decryption_key, c1_decryption_key_ptr, 16);
+    free(c1_decryption_key_ptr);
 
     // Decrypt c1 with the decryption key and get timestamp prime
+    decrypt_sym(c1_decryption_key, new_frame->iv, new_frame->c1, c1_len, ts_prime);
 
-    
+    // Extract nonce from timestamp prime
+    memcpy(nonce, ts_prime, 8);
+    memcpy(nonce + 8, ts_prime + 8, 8);
+
+
     // Start to decrypt c2
     // Construct the key for c2
     // Extract nounce from the timestamp prime
