@@ -79,11 +79,11 @@ typedef struct {
 } frame_packet_t;
 
 typedef struct {
-    decoder_id_t decoder_id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-    channel_id_t channel;
-} subscription_update_packet_t;
+    decoder_id_t decoder_id;        // device_id 4 bytes
+    timestamp_t start_timestamp;    // start_timestamp 8 bytes
+    timestamp_t end_timestamp;      // end_timestamp 8 bytes
+    channel_id_t channel;           // channel 4 bytes
+} subscription_update_packet_t;     // channel, device, start, end (For the subscription update)
 
 typedef struct {
     channel_id_t channel;
@@ -211,7 +211,7 @@ int list_channels() {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(const unsigned char *intrwvn_msg, unsigned char *subscription_info, unsigned char *checksum) {
+int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
     if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
         return -1;  // Return error code
