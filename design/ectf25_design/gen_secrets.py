@@ -12,26 +12,13 @@ Copyright: Copyright (c) 2025 The MITRE Corporation
 
 import argparse
 import json
+import os
+import generate_secret_h
 from pathlib import Path
 
 import secrets as secret_gen
 
 from loguru import logger
-
-
-def gen_channel_key(stream_length=8) -> dict:
-    """Generate mask_key, msg_key, subscription_key for a channel
-    """
-    # Generate a random 16-byte key
-    keys = {}
-    # 8 length of hex is 16 bytes long, json does not accpet hex.
-    keys["mask_key"] = secret_gen.token_hex(stream_length)
-    keys["msg_key"] = secret_gen.token_hex(stream_length)
-    keys["subscription_key"] = secret_gen.token_hex(stream_length)
-    keys["data_key"] = secret_gen.token_hex(stream_length)
-
-    return keys
-
 
 def gen_secrets(channels: list[int]) -> bytes:
     """Generate the contents secrets file
@@ -51,9 +38,28 @@ def gen_secrets(channels: list[int]) -> bytes:
     # Create the secrets object
     # You can change this to generate any secret material
     # The secrets file will never be shared with attackers
+    # secrets = {
+    #     "channels": channels,
+    #     "some_secrets": "EXAMPLE",
+    # }
+    
+
     secrets = {
-        "channels": channels
+        # creates a new list with the value 0, representing channel 0, 
+        # as the first element
+        "channels": [0] + channels,
     }
+    secrets['flash_key']=str(os.urandom(16))
+    
+    for channel in [0] + channels:
+        secrets[f"channel_{channel}"] = {
+            "channel_ID": str(channel),  # Channel ID as an integer
+            "mask_key": str(os.urandom(16)),  # 16 bytes hex
+            "msg_key": str(os.urandom(16)),   # 16 bytes hex 
+            "data_key": str(os.urandom(16)),  # 16 bytes hex
+            "subscription_key": str(os.urandom(16)),  # 16 bytes
+            "check_sum": str(os.urandom(24)),  # 24 bytes
+        }
 
     for channel in channels:
         # Generate secret for each channel
@@ -114,6 +120,8 @@ def main():
     with open(args.secrets_file, "wb" if args.force else "xb") as f:
         # Dump the secrets to the file
         f.write(secrets)
+    
+    generate_secret_h.gen_sec(args.secrets_file)
 
     # For your own debugging. Feel free to remove
     logger.success(f"Wrote secrets to {str(args.secrets_file.absolute())}")
