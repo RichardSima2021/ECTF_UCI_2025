@@ -28,14 +28,14 @@
 // /* Code between this #ifdef and the subsequent #endif will
 // *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
 // *  the projectk.mk file. */
-// #ifdef CRYPTO_EXAMPLE
+#ifdef CRYPTO_EXAMPLE
 // /* The simple crypto example included with the reference design is intended
 // *  to be an example of how you *may* use cryptography in your design. You
 // *  are not limited nor required to use this interface in your design. It is
 // *  recommended for newer teams to start by only using the simple crypto
 // *  library until they have a working design. */
-// #include "simple_crypto.h"
-// #endif  //CRYPTO_EXAMPLE
+#include "simple_crypto.h"
+#endif  //CRYPTO_EXAMPLE
 
 
 
@@ -230,41 +230,41 @@ void init() {
 // /* Code between this #ifdef and the subsequent #endif will
 // *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
 // *  the projectk.mk file. */
-// #ifdef CRYPTO_EXAMPLE
-// void crypto_example(void) {
-//     // Example of how to utilize included simple_crypto.h
+#ifdef CRYPTO_EXAMPLE
+void crypto_example(void) {
+    // Example of how to utilize included simple_crypto.h
 
-//     // This string is 16 bytes long including null terminator
-//     // This is the block size of included symmetric encryption
-//     char *data = "Crypto Example!";
-//     uint8_t ciphertext[BLOCK_SIZE];
-//     uint8_t key[KEY_SIZE];
-//     uint8_t hash_out[HASH_SIZE];
-//     uint8_t decrypted[BLOCK_SIZE];
+    // This string is 16 bytes long including null terminator
+    // This is the block size of included symmetric encryption
+    char *data = "Crypto Example!";
+    uint8_t ciphertext[BLOCK_SIZE];
+    uint8_t key[KEY_SIZE];
+    uint8_t hash_out[HASH_SIZE];
+    uint8_t decrypted[BLOCK_SIZE];
 
-//     char output_buf[128] = {0};
+    char output_buf[128] = {0};
 
-//     // Zero out the key
-//     bzero(key, BLOCK_SIZE);
+    // Zero out the key
+    bzero(key, BLOCK_SIZE);
 
-//     // Encrypt example data and print out
-//     encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
-//     print_debug("Encrypted data: \n");
-//     print_hex_debug(ciphertext, BLOCK_SIZE);
+    // Encrypt example data and print out
+    encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
+    print_debug("Encrypted data: \n");
+    print_hex_debug(ciphertext, BLOCK_SIZE);
 
-//     // Hash example encryption results
-//     hash(ciphertext, BLOCK_SIZE, hash_out);
+    // Hash example encryption results
+    hash(ciphertext, BLOCK_SIZE, hash_out);
 
-//     // Output hash result
-//     print_debug("Hash result: \n");
-//     print_hex_debug(hash_out, HASH_SIZE);
+    // Output hash result
+    print_debug("Hash result: \n");
+    print_hex_debug(hash_out, HASH_SIZE);
 
-//     // Decrypt the encrypted message and print out
-//     decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-//     sprintf(output_buf, "Decrypted message: %s\n", decrypted);
-//     print_debug(output_buf);
-// }
-// #endif  //CRYPTO_EXAMPLE
+    // Decrypt the encrypted message and print out
+    decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    sprintf(output_buf, "Decrypted message: %s\n", decrypted);
+    print_debug(output_buf);
+}
+#endif  //CRYPTO_EXAMPLE
 
 
 /**********************************************************
