@@ -241,7 +241,7 @@ bool found_duplicate_channel_id() {
  *  @return 0 upon success.  -1 if error.
 */
 //                                         this update info will be updated later to be encoded input
-int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_info) {
+int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     /*   
     2. Update subscription 
         1. Decrypt subscription using subscription key
@@ -255,6 +255,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
     // extract(decoded_sub_packet, update_info);
     // verify_sub_packet(update_info)
 
+    
     int i;
 
     if (update->channel == EMERGENCY_CHANNEL) {
