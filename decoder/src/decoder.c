@@ -245,10 +245,12 @@ bool found_duplicate_channel_id() {
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     /*   
     2. Update subscription 
-        1. Decrypt subscription using subscription key
-        2. Extract the pre-encoded_msg
-        3. Extract subscription_info from interweaved message
-        4. Update subscription
+        1. Extract first four bytes to get channel ID
+        2. Retrieve secrets from flash to find channel with given ID
+        3. Use subscription key from corresponding secret_t to decrypt packet
+        4. De-interweave to get concatenated sub info
+        5. Extract sub info
+        6. Update sub info
     */
 
     // TODO: implement
@@ -259,7 +261,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     
     // verify_sub_packet(update_sub_info, checksum)
 
-    
+    update_subscription_packet_t *update; 
+
     int i;
 
     if (update->channel == EMERGENCY_CHANNEL) {
