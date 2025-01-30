@@ -139,6 +139,7 @@ int list_channels() {
  */
 int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
+    // (NEST THIS FOR GLITCH PRORTECTION)
     if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
         return -1;  // Return error code
     }
@@ -251,9 +252,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     */
 
     // TODO: implement
-    // decode(encoded_sub_packet, decoded_sub_packet);
-    // extract(decoded_sub_packet, update_info);
-    // verify_sub_packet(update_info)
+    // decode(subscription_update_packet_t *encoded_sub_pkt, subscription_update_packet_t *decode_sub_pkt)
+
+    // extract(const unsigned char *decoded_sub_packet, subscription_update_packet_t *update_sub_info, unsigned char *checksum);
+
+    
+    // verify_sub_packet(update_sub_info, checksum)
 
     
     int i;
@@ -360,14 +364,10 @@ void init() {
     int ret;
 
     // Initialize the flash peripheral to enable access to persistent memory
-    flash_init();
-
-    //first extract the flash protection key for other updates (not done yet)
-    char* secret[16]; memset(secret,0,16);
+    flash_simple_init();
 
     // Read starting flash values into our flash status struct
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-
+    flash_simple_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -384,7 +384,6 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
-            subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
         }
 
         // Write the starting channel subscriptions into flash.
