@@ -62,11 +62,9 @@ def gen_subscription(
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
     
-    
-    # need fix: need to get proper sub_key
     return encrypt(sub_key, secrets, encoder, encrypted_data)
 
-
+'''
 def interweave(sub_info, check_sum_channel):
     if len(sub_info) != len(check_sum_channel):
         print(len(sub_info), len(check_sum_channel))
@@ -94,7 +92,20 @@ def interweave(sub_info, check_sum_channel):
         ret.append(interwoven_byte2)
     
     return bytes(ret)
+'''
 
+def interweave(sub_info, check_sum_channel):
+    if len(sub_info) != len(check_sum_channel):
+        raise ValueError("Both byte strings must be of the same length.")
+    
+    ret = bytearray()
+
+    for i in range(len(sub_info)):
+        ret.append(sub_info[i])
+        ret.append(check_sum_channel[i])
+        
+    return bytes(ret)
+    
 def get_channel_key(channel, secrets):
     if channel not in secrets['channels']:
         raise ValueError("Channel not found in secrets")
@@ -102,7 +113,7 @@ def get_channel_key(channel, secrets):
 
 def encrypt(interwoven_bytestring, secrets, encoder, channel):
     print("interwoven_bytestring: ", interwoven_bytestring)
-    data = pad(interwoven_bytestring, AES.block_size)
+    data = pad(interwoven_bytestring.decode('utf-8'), 16)
     channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
 
