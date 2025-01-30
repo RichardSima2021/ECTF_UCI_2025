@@ -19,51 +19,25 @@
 #include "status_led.h"
 #include "board.h"
 #include "mxc_delay.h"
-#include "simple_flash.h"
+#include "advanced_flash.h"
 #include "host_messaging.h"
 #include "types.h"
 
 #include "simple_uart.h"
 
-/* Code between this #ifdef and the subsequent #endif will
-*  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
-*  the projectk.mk file. */
+
+// /* Code between this #ifdef and the subsequent #endif will
+// *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
+// *  the projectk.mk file. */
 #ifdef CRYPTO_EXAMPLE
-/* The simple crypto example included with the reference design is intended
-*  to be an example of how you *may* use cryptography in your design. You
-*  are not limited nor required to use this interface in your design. It is
-*  recommended for newer teams to start by only using the simple crypto
-*  library until they have a working design. */
+// /* The simple crypto example included with the reference design is intended
+// *  to be an example of how you *may* use cryptography in your design. You
+// *  are not limited nor required to use this interface in your design. It is
+// *  recommended for newer teams to start by only using the simple crypto
+// *  library until they have a working design. */
 #include "simple_crypto.h"
 #endif  //CRYPTO_EXAMPLE
 
-/**********************************************************
- ******************* PRIMITIVE TYPES **********************
- **********************************************************/
-
-#define timestamp_t uint64_t
-#define channel_id_t uint32_t
-#define decoder_id_t uint32_t
-#define pkt_len_t uint16_t
-
-/**********************************************************
- *********************** CONSTANTS ************************
- **********************************************************/
-
-#define MAX_CHANNEL_COUNT 8
-#define EMERGENCY_CHANNEL 0
-#define FRAME_SIZE 64
-#define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
-#define DEFAULT_CHANNEL_ID 0xFFFFFFFF
-// This is a canary value so we can confirm whether this decoder has booted before
-#define FLASH_FIRST_BOOT 0xDEADBEEF
-
-/**********************************************************
- ********************* STATE MACROS ***********************
- **********************************************************/
-
-// Calculate the flash address where we will store channel info as the 2nd to last page available
-#define FLASH_STATUS_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (2 * MXC_FLASH_PAGE_SIZE))
 
 
 /**********************************************************
@@ -303,10 +277,11 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         // we should 
     }
 
-    // If we do not have any room for more subscriptions
-    if (i == MAX_CHANNEL_COUNT) {
+
+    // If we find duplicate channel ids (this should not happen)
+    if (found_duplicate_channel_id()) {
         STATUS_LED_RED();
-        print_error("Failed to update subscription - max subscriptions installed\n");
+        print_error("Channel list should not contain duplicates\n");
         return -1;
     }
 
@@ -317,8 +292,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         return -1;
     }
 
-    flash_simple_erase_page(FLASH_STATUS_ADDR);
-    flash_simple_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_erase_page(FLASH_STATUS_ADDR);
+    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
@@ -367,10 +342,10 @@ void init() {
     int ret;
 
     // Initialize the flash peripheral to enable access to persistent memory
-    flash_simple_init();
+    flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_simple_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -392,8 +367,8 @@ void init() {
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
-        flash_simple_erase_page(FLASH_STATUS_ADDR);
-        flash_simple_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+        flash_erase_page(FLASH_STATUS_ADDR);
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     }
 
     // Initialize the uart peripheral to enable serial I/O
@@ -405,9 +380,9 @@ void init() {
     }
 }
 
-/* Code between this #ifdef and the subsequent #endif will
-*  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
-*  the projectk.mk file. */
+// /* Code between this #ifdef and the subsequent #endif will
+// *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
+// *  the projectk.mk file. */
 #ifdef CRYPTO_EXAMPLE
 void crypto_example(void) {
     // Example of how to utilize included simple_crypto.h
@@ -444,6 +419,7 @@ void crypto_example(void) {
 }
 #endif  //CRYPTO_EXAMPLE
 
+
 /**********************************************************
  *********************** MAIN LOOP ************************
  **********************************************************/
@@ -457,6 +433,7 @@ int main(void) {
 
     // initialize the device
     init();
+    // init_secret();
 
     print_debug("Decoder Booted!\n");
 
@@ -497,15 +474,11 @@ int main(void) {
         case LIST_MSG:
             STATUS_LED_CYAN();
 
-            #ifdef CRYPTO_EXAMPLE
-                // Run the crypto example
-                // TODO: Remove this from your design
-                crypto_example();
-            #endif // CRYPTO_EXAMPLE
-
-            // Print the boot flag
-            // TODO: Remove this from your design
-            boot_flag();
+            // #ifdef CRYPTO_EXAMPLE
+            //     // Run the crypto example
+            //     // TODO: Remove this from your design
+            //     crypto_example();
+            // #endif // CRYPTO_EXAMPLE
             list_channels();
             break;
 
