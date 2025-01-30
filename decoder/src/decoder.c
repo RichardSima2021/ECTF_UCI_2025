@@ -261,7 +261,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     
     // verify_sub_packet(update_sub_info, checksum)
 
-    update_subscription_packet_t *update; 
+    subscription_update_packet_t *update; 
 
     int i;
 
