@@ -92,3 +92,24 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
     return 0;
 
 }
+
+
+int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
+    //this function assumes that decoder_status has already been extracted from the flash
+    int idx=extract_channel_idx(channel_id);
+    if(idx==-1){
+        return 0;
+    }
+    
+    decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
+
+    //write back this decoder_status to the flash
+    char flash_secret[16]; memset(flash_secret,0,16);
+    int err=read_flash_secret(flash_secret);
+    if(err==-1){
+        return err;
+    }
+    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    memset(flash_secret,0,16);
+    return err;
+}
