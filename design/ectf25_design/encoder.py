@@ -40,7 +40,7 @@ class Encoder:
         self.channel_keys = {}
 
         for channel in self.channels:
-            self.channel_keys[f'channel_key_{channel}'] = secrets[f'channel_key_{channel}']
+            self.channel_keys[f'channel_{channel}'] = secrets[f'channel_{channel}']
 
 
     def XOR(self, byte1, byte2):

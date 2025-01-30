@@ -23,6 +23,8 @@ from Cryptodome.Util.Padding import pad, unpad
 from loguru import logger
 
 from encoder import Encoder
+import secrets as secret_gen
+import ast
 
 
 def gen_subscription(
@@ -46,12 +48,17 @@ def gen_subscription(
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 
+    sub_key = secrets[f'channel_{channel}']['subscription_key']
+
     sub_info = struct.pack("<IQQI", device_id, start, end, channel)
-    check_sum_channel = secrets['checksum'][channel].encode('utf-8')
+    check_sum = secrets[f'channel_{channel}']['check_sum']
+    #check_sum_channel = bytes(check_sum, 'utf-8')
+    check_sum_channel = ast.literal_eval(check_sum)
+
+    #print(check_sum_channel)
+    print("sub and check: ", sub_info, check_sum_channel)
 
     interwoven_bytestring = interweave(sub_info, check_sum_channel)
-    
-    
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
     
@@ -62,6 +69,9 @@ def gen_subscription(
 
 def interweave(sub_info, check_sum_channel):
     if len(sub_info) != len(check_sum_channel):
+        print(len(sub_info), len(check_sum_channel))
+        print(type(sub_info), type(check_sum_channel))
+        print("sub and check: ", sub_info, check_sum_channel)
         raise ValueError("Both byte strings must be of the same length.")
     
     ret = bytearray()
@@ -88,11 +98,12 @@ def interweave(sub_info, check_sum_channel):
 def get_channel_key(channel, secrets):
     if channel not in secrets['channels']:
         raise ValueError("Channel not found in secrets")
-    return secrets['channel_key_' + str(channel)]
+    return secrets[f'channel_{channel}']
 
 def encrypt(interwoven_bytestring, secrets, encoder, channel):
-    data = pad(interwoven_bytestring, 16)
-    channel_key = get_channel_key(channel, secrets)
+    print("interwoven_bytestring: ", interwoven_bytestring)
+    data = pad(interwoven_bytestring, AES.block_size)
+    channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
 
     cipher = encoder.sym_encrypt(channel_key, iv, data)
@@ -187,3 +198,7 @@ if __name__ == "__main__":
     # print(' '.join(f"{byte:08b}" for byte in sub_info), end='\n\n')
     # print(' '.join(f"{byte:08b}" for byte in check_sum_channel), end='\n\n')
     # print(' '.join(f"{byte:08b}" for byte in interwoven_bytestring), end='\n\n')
+
+
+
+    
