@@ -246,6 +246,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     subscription_update_packet_t *update; 
 
+    update->channel = channel_id;
+
     int i;
 
     if (update->channel == EMERGENCY_CHANNEL) {
