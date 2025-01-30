@@ -285,13 +285,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         return -1;
     }
 
-    // If we find duplicate channel ids (this should not happen)
-    if (found_duplicate_channel_id()) {
-        STATUS_LED_RED();
-        print_error("Channel list should not contain duplicates\n");
-        return -1;
-    }
-
     flash_erase_page(FLASH_STATUS_ADDR);
     flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
     // Success message with an empty body
