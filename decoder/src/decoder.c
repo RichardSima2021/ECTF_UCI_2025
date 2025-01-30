@@ -107,6 +107,7 @@ typedef struct {
     channel_id_t id;
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;
+    timestamp_t current_timestamp;
 } channel_status_t;
 
 typedef struct {
@@ -407,10 +408,14 @@ void init() {
     int ret;
 
     // Initialize the flash peripheral to enable access to persistent memory
-    flash_simple_init();
+    flash_init();
+
+    //first extract the flash protection key for other updates (not done yet)
+    char* secret[16]; memset(secret,0,16);
 
     // Read starting flash values into our flash status struct
-    flash_simple_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -427,6 +432,7 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
+            subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
         }
 
         // Write the starting channel subscriptions into flash.
