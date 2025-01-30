@@ -301,7 +301,10 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
 
     // TODO: implement
     // decode(subscription_update_packet_t *encoded_sub_pkt, subscription_update_packet_t *decode_sub_pkt)
+
     // extract(const unsigned char *decoded_sub_packet, subscription_update_packet_t *update_sub_info, unsigned char *checksum);
+
+    
     // verify_sub_packet(update_sub_info, checksum)
 
     int i;
