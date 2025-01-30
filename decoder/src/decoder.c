@@ -111,7 +111,7 @@ int list_channels() {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(const encrypted_update_packet *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
+int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
     // (NEST THIS FOR GLITCH PRORTECTION)
     if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
@@ -119,8 +119,9 @@ int extract(const encrypted_update_packet *intrwvn_msg, subscription_update_pack
     }
 
     // Expecting 48 bytes from interwoven message
-    // 24 bytes for the subscription
-    // 24 bytes for the checksum
+    // 20 bytes for the subscription info (device ID, start timestamp, end timestamp)
+    // 20 bytes for the checksum
+    // 8 bytes for padding (Junk, ignore)
 
     /*
         Questions:
@@ -133,10 +134,10 @@ int extract(const encrypted_update_packet *intrwvn_msg, subscription_update_pack
                   Is this safe?
     */
 
-    char temp_subscription_arr[24];
+    char temp_subscription_arr[20];
 
     // Extract the interwoven message into their respective character arrays
-    for (int i = 0; i < 48; i++) {
+    for (int i = 0; i < 40; i++) {
         if (i % 2 == 0) {
             temp_subscription_arr[i / 2] = intrwvn_msg[i];
         }
@@ -146,8 +147,8 @@ int extract(const encrypted_update_packet *intrwvn_msg, subscription_update_pack
     }
 
     // Null-terminate the output strings
-    temp_subscription_arr[24] = '\0';
-    checksum[24] = '\0';
+    temp_subscription_arr[20] = '\0';
+    checksum[20] = '\0';
 
     // Copy the temporary subscription array into the subscription_info struct
     /*
@@ -160,10 +161,9 @@ int extract(const encrypted_update_packet *intrwvn_msg, subscription_update_pack
     */
 
     // Pull individual values from temp_subscription_arr
-    subscription_info->channel = (temp_subscription_arr[0] - '0') * 1000 + (temp_subscription_arr[1] - '0') * 100 + (temp_subscription_arr[2] - '0') * 10 + (temp_subscription_arr[3] - '0');
-    subscription_info->decoder_id = (temp_subscription_arr[4] - '0') * 1000 + (temp_subscription_arr[5] - '0') * 100 + (temp_subscription_arr[6] - '0') * 10 + (temp_subscription_arr[7] - '0');
-    subscription_info->start_timestamp = (temp_subscription_arr[8] - '0') * 10000000 + (temp_subscription_arr[9] - '0') * 1000000 + (temp_subscription_arr[10] - '0') * 100000 + (temp_subscription_arr[11] - '0') * 10000 + (temp_subscription_arr[12] - '0') * 1000 + (temp_subscription_arr[13] - '0') * 100 + (temp_subscription_arr[14] - '0') * 10 + (temp_subscription_arr[15] - '0');
-    subscription_info->end_timestamp = (temp_subscription_arr[16] - '0') * 10000000 + (temp_subscription_arr[17] - '0') * 1000000 + (temp_subscription_arr[18] - '0') * 100000 + (temp_subscription_arr[19] - '0') * 10000 + (temp_subscription_arr[20] - '0') * 1000 + (temp_subscription_arr[21] - '0') * 100 + (temp_subscription_arr[22] - '0') * 10 + (temp_subscription_arr[23] - '0');
+    subscription_info->decoder_id = (temp_subscription_arr[0] - '0') * 1000 + (temp_subscription_arr[1] - '0') * 100 + (temp_subscription_arr[2] - '0') * 10 + (temp_subscription_arr[3] - '0');
+    subscription_info->start_timestamp = (temp_subscription_arr[4] - '0') * 10000000 + (temp_subscription_arr[5] - '0') * 1000000 + (temp_subscription_arr[6] - '0') * 100000 + (temp_subscription_arr[7] - '0') * 10000 + (temp_subscription_arr[8] - '0') * 1000 + (temp_subscription_arr[9] - '0') * 100 + (temp_subscription_arr[10] - '0') * 10 + (temp_subscription_arr[11] - '0');
+    subscription_info->end_timestamp = (temp_subscription_arr[12] - '0') * 10000000 + (temp_subscription_arr[13] - '0') * 1000000 + (temp_subscription_arr[14] - '0') * 100000 + (temp_subscription_arr[15] - '0') * 10000 + (temp_subscription_arr[16] - '0') * 1000 + (temp_subscription_arr[17] - '0') * 100 + (temp_subscription_arr[18] - '0') * 10 + (temp_subscription_arr[19] - '0');
     
     return 0;  // Success
 }
@@ -232,10 +232,11 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     // extract(const unsigned char *decoded_sub_packet, subscription_update_packet_t *update_sub_info, unsigned char *checksum);
 
-    
+
     // verify_sub_packet(update_sub_info, checksum)
 
-    subscription_update_packet_t *update; 
+    subscription_update_packet_t *update;
+
 
     int i;
 
