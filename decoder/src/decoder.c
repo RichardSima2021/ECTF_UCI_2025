@@ -287,6 +287,8 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Decrypt c1 with the decryption key and get timestamp prime
 
+
+    //validate this timestamp
     
     // Start to decrypt c2
     // Construct the key for c2
