@@ -235,6 +235,15 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     // verify_sub_packet(update_sub_info, checksum)
 
+    channel_id_t channel_id;
+    secret_t *channel_secrets
+
+    memcpy(&channel_id, packet->encrypted_packt, sizeof(channel_id_t));
+
+    read_secrets(channel_id, channel_secrets);
+
+    
+
     subscription_update_packet_t *update;
 
 
