@@ -62,7 +62,7 @@ typedef struct {
 } subscription_update_packet_t;
 
 typedef struct {
-    char encrypted_packet[52]
+    unsigned char encrypted_packet[52]
 }   encrypted_update_packet;
 
 typedef struct {

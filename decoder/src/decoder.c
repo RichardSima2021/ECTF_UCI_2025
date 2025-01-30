@@ -111,7 +111,7 @@ int list_channels() {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
+int extract(const encrypted_update_packet *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
     // (NEST THIS FOR GLITCH PRORTECTION)
     if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
@@ -244,7 +244,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     
 
-    update_subscription_packet_t *update; 
+    subscription_update_packet_t *update; 
 
     int i;
 
