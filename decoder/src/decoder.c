@@ -187,6 +187,7 @@ int list_channels() {
  */
 int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
+    // (NEST THIS FOR GLITCH PRORTECTION)
     if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
         return -1;  // Return error code
     }
@@ -299,9 +300,9 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update_
     */
 
     // TODO: implement
-    // decode(encoded_sub_packet, decoded_sub_packet);
-    // extract(decoded_sub_packet, update_info);
-    // verify_sub_packet(update_info)
+    // decode(subscription_update_packet_t *encoded_sub_pkt, subscription_update_packet_t *decode_sub_pkt)
+    // extract(const unsigned char *decoded_sub_packet, subscription_update_packet_t *update_sub_info, unsigned char *checksum);
+    // verify_sub_packet(update_sub_info, checksum)
 
     int i;
 
