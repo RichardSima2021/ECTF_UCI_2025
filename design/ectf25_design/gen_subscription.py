@@ -50,7 +50,8 @@ def gen_subscription(
 
     sub_key = secrets[f'channel_{channel}']['subscription_key']
 
-    sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    #sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    sub_info = struct.pack("<IQQ", device_id, start, end)
     check_sum = secrets[f'channel_{channel}']['check_sum']
     #check_sum_channel = bytes(check_sum, 'utf-8')
     check_sum_channel = ast.literal_eval(check_sum)
@@ -62,7 +63,7 @@ def gen_subscription(
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
     
-    return encrypt(sub_key, secrets, encoder, encrypted_data)
+    return bytes(channel) + encrypted_data
 
 '''
 def interweave(sub_info, check_sum_channel):
@@ -95,8 +96,8 @@ def interweave(sub_info, check_sum_channel):
 '''
 
 def interweave(sub_info, check_sum_channel):
-    if len(sub_info) != len(check_sum_channel):
-        raise ValueError("Both byte strings must be of the same length.")
+    if len(sub_info) != len(check_sum_channel) or len(sub_info) != 20:
+        raise ValueError("invalid lengths")
     
     ret = bytearray()
 
@@ -104,6 +105,7 @@ def interweave(sub_info, check_sum_channel):
         ret.append(sub_info[i])
         ret.append(check_sum_channel[i])
         
+    print("ret", ret)
     return bytes(ret)
     
 def get_channel_key(channel, secrets):
