@@ -13,6 +13,10 @@ Copyright: Copyright (c) 2025 The MITRE Corporation
 import argparse
 import struct
 import json
+import secrets as secret_gen
+from Cryptodome.Cipher import AES
+from Cryptodome.Hash import SHA256
+
 
 
 class Encoder:
@@ -31,7 +35,44 @@ class Encoder:
 
         # Load the example secrets for use in Encoder.encode
         # This will be "EXAMPLE" in the reference design"
-        self.some_secrets = secrets["some_secrets"]
+        self.channels = secrets["channels"]
+
+        self.channel_keys = {}
+
+        for channel in self.channels:
+            self.channel_keys[f'channel_key_{channel}'] = secrets[f'channel_key_{channel}']
+
+
+    def XOR(self, byte1, byte2):
+        """XOR two bytes"""
+        # Extend them two same length
+        if len(byte1) < len(byte2):
+            byte = byte1
+            byte1 = byte2
+            byte2 = byte
+        byte2 = byte2.ljust(len(byte1), b'\x00')
+        return bytes(a ^ b for a, b in zip(byte1, byte2))
+
+    
+    def sym_encrypt(self, key, iv, plaintext):
+        """Encrypt plaintext using AES"""
+
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        return aes.encrypt(plaintext)
+    
+    def compute_hash(self, data):
+        """Compute the SHA-256 hash of the data"""
+        hash = SHA256.new()
+        hash.update(data)
+        return hash.digest()
+    
+    def pad(self, data, block_size):
+        """Pad the data to the block size"""
+        assert type(data) == bytes, "Data must be bytes"
+        padding_length = block_size - (len(data) % block_size)
+        return data + b'\x00' * padding_length
+
+
 
     def encode(self, channel: int, frame: bytes, timestamp: int) -> bytes:
         """The frame encoder function
@@ -54,7 +95,37 @@ class Encoder:
         # TODO: encode the satellite frames so that they meet functional and
         #  security requirements
 
-        return struct.pack("<IQ", channel, timestamp) + frame
+        mask_key = self.channel_keys[f'channel_key_{channel}']["mask_key"].encode('utf-8')
+        msg_key = self.channel_keys[f'channel_key_{channel}']["msg_key"].encode('utf-8')
+        subscription_key = self.channel_keys[f'channel_key_{channel}']["subscription_key"].encode('utf-8')
+        data_key = self.channel_keys[f'channel_key_{channel}']["data_key"].encode('utf-8')
+
+        # Check the key are all 16 bytes long
+        assert len(mask_key) == 16, "The mask key is not 16 bytes long"
+        assert len(msg_key) == 16, "The message key is not 16 bytes long"
+        assert len(subscription_key) == 16, "The subscription key is not 16 bytes long"
+        assert len(data_key) == 16, "The data key is not 16 bytes long"
+
+        nounce = secret_gen.token_bytes(16)
+        iv = secret_gen.token_bytes(16)
+
+        # Prepare C1 info
+        timestamp_prime = nounce[:8] + timestamp.to_bytes(8, 'little') + nounce[8:]
+
+        c1_key = self.XOR((self.compute_hash(self.XOR(mask_key, timestamp.to_bytes(8, 'little')))), (msg_key))
+        c1_data = self.pad(timestamp_prime, 16)
+        c1 = self.sym_encrypt(c1_key, iv, c1_data)
+        c1_len = len(c1)
+
+        # Prepare C2 info
+        c2_key = self.XOR(nounce, data_key)
+        c2_data = self.pad(frame, 16)
+        c2 = self.sym_encrypt(c2_key, iv, c2_data)
+        c2_len = len(c2)
+
+
+        return struct.pack("<IQII", channel, timestamp, c1_len, c2_len) + iv + c1 + c2
+    
 
 
 def main():
@@ -74,7 +145,7 @@ def main():
     parser.add_argument("timestamp", type=int, help="64b timestamp to use")
     args = parser.parse_args()
 
-    encoder = Encoder(args.secrets.read())
+    encoder = Encoder(args.secrets_file.read())
     print(repr(encoder.encode(args.channel, args.frame.encode(), args.timestamp)))
 
 
