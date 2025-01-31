@@ -113,10 +113,11 @@ int list_channels() {
  */
 int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
-    // (NEST THIS FOR GLITCH PRORTECTION)
-    if (intrwvn_msg == NULL || subscription_info == NULL || checksum == NULL) {
-        return -1;  // Return error code
-    }
+    // (Nest for glitch protection)
+    if (intrwvn_msg == NULL) return -1;
+    if (subscription_info == NULL) return -1;
+    if (checksum == NULL) return -1;
+
 
     // Expecting 48 bytes from interwoven message
     // 20 bytes for the subscription info (device ID, start timestamp, end timestamp)
@@ -125,9 +126,6 @@ int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subs
 
     /*
         Questions:
-            How is it interwoven? - Alternates between subscription info and checksum every byte. Starts with subs.
-            Where is the checksum? Should I return it too?
-            What to return? Multiple flash entries? (Security issue; Ask John)
             Another security issue:
                 - As it stands, arguments fed into this function are to be
                   staticly allocated character arrays stored in stack.
@@ -153,11 +151,10 @@ int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subs
     // Copy the temporary subscription array into the subscription_info struct
     /*
         timestamp_t uint64_t
-        channel_id_t uint32_t
         decoder_id_t uint32_t
 
-        |   channel  | decoder_id  | start_timestamp | end_timestamp  |
-        |   4 bytes  |   4 bytes   |     8 bytes     |    8 bytes     |
+        | decoder_id  | start_timestamp | end_timestamp  |
+        |   4 bytes   |     8 bytes     |    8 bytes     |
     */
 
     // Pull individual values from temp_subscription_arr
@@ -242,9 +239,17 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     read_secrets(channel_id, channel_secrets);
 
-    
+    unsigned char int_msg;                  // TO BE IMPLEMENTED
+    subscription_update_packet_t update;
+    update.channel = channel_id;
 
-    subscription_update_packet_t *update;
+    unsigned char checksum [20];
+
+    if (extract(int_msg, &update, checksum) != 0) {
+        STATUS_LED_RED();
+        print_error("Failed to update subscription - could not update subscription\n")
+        return -1;
+    }
 
 
     int i;
