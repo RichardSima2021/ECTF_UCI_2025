@@ -18,7 +18,7 @@ import struct
 from Cryptodome.Cipher import AES
 from Cryptodome.Hash import SHA256
 from Cryptodome.Random import get_random_bytes
-from Cryptodome.Util.Padding import pad, unpad
+from Cryptodome.Util.Padding import pad
 
 from loguru import logger
 
@@ -65,35 +65,11 @@ def gen_subscription(
     
     return bytes(channel) + encrypted_data
 
-'''
-def interweave(sub_info, check_sum_channel):
-    if len(sub_info) != len(check_sum_channel):
-        print(len(sub_info), len(check_sum_channel))
-        print(type(sub_info), type(check_sum_channel))
-        print("sub and check: ", sub_info, check_sum_channel)
-        raise ValueError("Both byte strings must be of the same length.")
-    
-    ret = bytearray()
-    
-    for b1, b2 in zip(sub_info, check_sum_channel):
-        # Interweave bits into two bytes because combining them into one exceeds a byte's capacity
-        interwoven_byte1 = 0
-        interwoven_byte2 = 0
-        for i in range(4):  # Only process 4 bits at a time
-            # Get two bits at a time from each input byte
-            bit1 = (b1 >> (7 - i)) & 1
-            bit2 = (b2 >> (7 - i)) & 1
-            bit3 = (b1 >> (3 - i)) & 1
-            bit4 = (b2 >> (3 - i)) & 1
-            # Append the bits to the first and second interwoven bytes
-            interwoven_byte1 = (interwoven_byte1 << 2) | (bit1 << 1) | bit2
-            interwoven_byte2 = (interwoven_byte2 << 2) | (bit3 << 1) | bit4
-        # Append the two interwoven bytes
-        ret.append(interwoven_byte1)
-        ret.append(interwoven_byte2)
-    
-    return bytes(ret)
-'''
+def pad(data, block_size):
+        """Pad the data to the block size"""
+        assert type(data) == bytes, "Data must be bytes"
+        padding_length = block_size - (len(data) % block_size)
+        return data + b'\x00' * padding_length
 
 def interweave(sub_info, check_sum_channel):
     if len(sub_info) != len(check_sum_channel) or len(sub_info) != 20:
@@ -105,7 +81,7 @@ def interweave(sub_info, check_sum_channel):
         ret.append(sub_info[i])
         ret.append(check_sum_channel[i])
         
-    print("ret", ret)
+    # print("ret", ret)
     return bytes(ret)
     
 def get_channel_key(channel, secrets):
@@ -115,7 +91,7 @@ def get_channel_key(channel, secrets):
 
 def encrypt(interwoven_bytestring, secrets, encoder, channel):
     print("interwoven_bytestring: ", interwoven_bytestring)
-    data = pad(interwoven_bytestring.decode('utf-8'), 16)
+    data = pad(interwoven_bytestring, 16)
     channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
 
