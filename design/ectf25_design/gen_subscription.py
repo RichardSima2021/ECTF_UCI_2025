@@ -15,7 +15,16 @@ import json
 from pathlib import Path
 import struct
 
+from Cryptodome.Cipher import AES
+from Cryptodome.Hash import SHA256
+from Cryptodome.Random import get_random_bytes
+#from Cryptodome.Util.Padding import pad
+
 from loguru import logger
+
+from encoder import Encoder
+import secrets as secret_gen
+import ast
 
 
 def gen_subscription(
@@ -33,17 +42,78 @@ def gen_subscription(
     """
     # TODO: Update this function to provide a Decoder with whatever data it needs to
     #   subscribe to a new channel
+    
+    encoder = Encoder(secrets)
 
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 
-    # You can use secrets generated using `gen_secrets` here like:
-    # secrets["some_secrets"]
-    # Which would return "EXAMPLE" in the reference design.
-    # Please note that the secrets are READ ONLY at this sage!
+    sub_key = secrets[f'channel_{channel}']['subscription_key']
 
-    # Pack the subscription. This will be sent to the decoder with ectf25.tv.subscribe
-    return struct.pack("<IQQI", device_id, start, end, channel)
+    #sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    sub_info = struct.pack("<IQQ", device_id, start, end)
+    check_sum = secrets[f'channel_{channel}']['check_sum']
+    #check_sum_channel = bytes(check_sum, 'utf-8')
+    check_sum_channel = ast.literal_eval(check_sum)
+
+    #print(check_sum_channel)
+    print("sub and check: ", sub_info, check_sum_channel)
+
+    interwoven_bytestring = interweave(sub_info, check_sum_channel)
+    
+    encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
+    
+    ret = channel.to_bytes(4, byteorder="little", signed=False)
+
+    '''
+    print("interwoven_bytestring length: ", len(interwoven_bytestring))
+    print("encrypted_data length: ", len(encrypted_data))
+    print("ret length: ", len(ret))
+    print("ret: ", ret)
+    print("ret + encrypted_data length: ", len(ret + encrypted_data))
+    print("ret + encrpted_data: ", ret + encrypted_data)
+    '''
+    return ret + encrypted_data
+    
+
+def pad(data, block_size):
+        """Pad the data to the block size"""
+        assert type(data) == bytes, "Data must be bytes"
+        padding_length = block_size - (len(data) % block_size)
+        return data + b'\x00' * padding_length
+
+def interweave(sub_info, check_sum_channel):
+    if len(sub_info) != len(check_sum_channel) or len(sub_info) != 20:
+        raise ValueError("invalid lengths")
+    
+    ret = bytearray()
+
+    for i in range(len(sub_info)):
+        ret.append(sub_info[i])
+        ret.append(check_sum_channel[i])
+        
+    # print("ret", ret)
+    return bytes(ret)
+    
+def get_channel_key(channel, secrets):
+    if channel not in secrets['channels']:
+        raise ValueError("Channel not found in secrets")
+    return secrets[f'channel_{channel}']
+
+def encrypt(interwoven_bytestring, secrets, encoder, channel):
+    #print("interwoven_bytestring: ", interwoven_bytestring)
+    data = pad(interwoven_bytestring, 16)
+    #print("padded length: ", len(data))
+    channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
+    iv = secret_gen.token_bytes(16)
+
+    cipher = encoder.sym_encrypt(channel_key, iv, data)
+
+    return cipher + iv
+    
+
+
+
 
 
 def parse_args():
@@ -104,3 +174,32 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # secrets = {'checksum':['abcdblablablaabcdblablab' for i in range(10)]}
+    # device_id = 1
+    # start = 2
+    # end = 6
+    # channel = 8
+    
+    # sub_info = struct.pack("<IQQI", device_id, start, end, channel)
+    # check_sum_channel = secrets['checksum'][channel].encode('utf-8')
+
+    # print(type(sub_info))
+    # print(sub_info)
+    # print(type(check_sum_channel))
+    # print(check_sum_channel)
+    # print(len(sub_info), len(check_sum_channel))
+
+    # sub_info = bytes(24)
+    # check_sum_channel = bytes([0xFF] * 24)
+    # interwoven_bytestring = interweave(sub_info, check_sum_channel)
+
+    # print(interwoven_bytestring)
+
+    # print(' '.join(f"{byte:08b}" for byte in sub_info), end='\n\n')
+    # print(' '.join(f"{byte:08b}" for byte in check_sum_channel), end='\n\n')
+    # print(' '.join(f"{byte:08b}" for byte in interwoven_bytestring), end='\n\n')
+
+
+
+    
