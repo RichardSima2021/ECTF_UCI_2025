@@ -165,7 +165,7 @@ int is_subscribed(channel_id_t channel) {
 
 
 
-int xorArrays(uint8_t *arr1, uint8_t *arr2, size_t arr1_len, size_t arr2_len, u_int8_t* result) {
+int xorArrays(uint8_t *arr1, size_t arr1_len, uint8_t *arr2, size_t arr2_len, u_int8_t* result) {
 
     // Check if input arrays are valid
     if (arr1 == NULL || arr2 == NULL || result == NULL) {
@@ -324,12 +324,12 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // XOR mask key with the timestamp
     uint8_t c1_key[KEY_SIZE] = {0};
     memcpy(c1_key, &timestamp, sizeof(timestamp));
-    xorArrays(c1_key, mask_key, c1_key, KEY_SIZE);
+    xorArrays(c1_key, sizeof(timestamp), mask_key, KEY_SIZE, c1_key);
     // Hash the the XOR result from the previous step
     compute_hash(c1_key, KEY_SIZE, c1_key);
 
     // XOR the hash result with message key to get the decryption key for c1
-    xorArrays(c1_key, message_key, c1_key, KEY_SIZE);
+    xorArrays(c1_key, KEY_SIZE, message_key, KEY_SIZE, c1_key);
 
     // Decrypt c1 with the decryption key and get timestamp prime
     decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
@@ -343,7 +343,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Construct the key for c2
     // XOR data key with the nounce to get the decryption key for c2
     uint8_t c2_key[KEY_SIZE] = {0};
-    xorArrays(nonce, data_key, c2_key, KEY_SIZE);
+    xorArrays(nonce, 16, data_key, KEY_SIZE, c2_key);
 
     // Calculate the length of c2
     int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
