@@ -62,7 +62,7 @@ typedef struct {
 } subscription_update_packet_t;
 
 typedef struct {
-    uint8_t encrypted_packet[52]
+    uint8_t encrypted_packet[52];
 }   encrypted_update_packet;
 
 typedef struct {
@@ -97,7 +97,7 @@ typedef struct {
     channel_id_t id;
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;
-    timestamp_t current_timestamp
+    timestamp_t current_timestamp;
 } channel_status_t;
 
 typedef struct {

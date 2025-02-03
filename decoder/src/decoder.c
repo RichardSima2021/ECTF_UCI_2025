@@ -253,7 +253,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     if (extract(interwoven_decrypted, &update, checksum) != 0) {
         STATUS_LED_RED();
-        print_error("Failed to update subscription - could not update subscription\n")
+        print_error("Failed to update subscription - could not update subscription\n");
         return -1;
     }
     
