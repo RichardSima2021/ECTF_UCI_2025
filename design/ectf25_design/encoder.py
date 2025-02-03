@@ -74,7 +74,7 @@ def main():
     parser.add_argument("timestamp", type=int, help="64b timestamp to use")
     args = parser.parse_args()
 
-    encoder = Encoder(args.secrets.read())
+    encoder = Encoder(args.secrets_file.read())
     print(repr(encoder.encode(args.channel, args.frame.encode(), args.timestamp)))
 
 
