@@ -246,12 +246,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, &interwoven_decrypted);
 
     // 4. & 5.
-    subscription_update_packet_t update;
-    update.channel = channel_id;
+    subscription_update_packet_t *update = malloc(sizeof(subscription_update_packet_t));
+    update->channel = channel_id;
 
     unsigned char checksum [20];
 
-    if (extract(interwoven_decrypted, &update, checksum) != 0) {
+    if (extract(interwoven_decrypted, update, checksum) != 0) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - could not update subscription\n");
         return -1;
