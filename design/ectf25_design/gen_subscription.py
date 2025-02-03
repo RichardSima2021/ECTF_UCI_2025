@@ -18,7 +18,7 @@ import struct
 from Cryptodome.Cipher import AES
 from Cryptodome.Hash import SHA256
 from Cryptodome.Random import get_random_bytes
-from Cryptodome.Util.Padding import pad
+#from Cryptodome.Util.Padding import pad
 
 from loguru import logger
 
@@ -63,7 +63,18 @@ def gen_subscription(
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
     
-    return bytes(channel) + encrypted_data
+    ret = channel.to_bytes(4, byteorder="little", signed=False)
+
+    '''
+    print("interwoven_bytestring length: ", len(interwoven_bytestring))
+    print("encrypted_data length: ", len(encrypted_data))
+    print("ret length: ", len(ret))
+    print("ret: ", ret)
+    print("ret + encrypted_data length: ", len(ret + encrypted_data))
+    print("ret + encrpted_data: ", ret + encrypted_data)
+    '''
+    return ret + encrypted_data
+    
 
 def pad(data, block_size):
         """Pad the data to the block size"""
@@ -90,8 +101,9 @@ def get_channel_key(channel, secrets):
     return secrets[f'channel_{channel}']
 
 def encrypt(interwoven_bytestring, secrets, encoder, channel):
-    print("interwoven_bytestring: ", interwoven_bytestring)
+    #print("interwoven_bytestring: ", interwoven_bytestring)
     data = pad(interwoven_bytestring, 16)
+    #print("padded length: ", len(data))
     channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
 
