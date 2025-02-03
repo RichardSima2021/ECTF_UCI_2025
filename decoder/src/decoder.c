@@ -237,13 +237,13 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     // 1.
     memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
     // 1.5
-    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted))
+    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
 
     // 2.
     read_secrets(channel_id, channel_secrets);
 
     // 3.
-    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key&interwoven_decrypted);
+    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, &interwoven_decrypted);
 
     // 4. & 5.
     subscription_update_packet_t update;
