@@ -23,6 +23,8 @@
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
+#define KEY_SIZE 16
+#define C1_LENGTH 32
 
 
 
@@ -53,6 +55,14 @@ typedef struct {
     timestamp_t timestamp;
     uint8_t data[FRAME_SIZE];
 } frame_packet_t;
+
+typedef struct{
+    channel_id_t channel;
+    timestamp_t timestamp;
+    uint8_t iv[KEY_SIZE];
+    uint8_t c1[C1_LENGTH];
+    uint8_t c2[FRAME_SIZE*2];
+} encrypted_frame_packet_t;
 
 typedef struct {
     decoder_id_t decoder_id;
