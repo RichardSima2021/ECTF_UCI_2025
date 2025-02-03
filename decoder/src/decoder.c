@@ -18,6 +18,7 @@
 #include "mxc_device.h"
 #include "status_led.h"
 #include "board.h"
+#include "advanced_flash.h"
 #include "mxc_delay.h"
 #include "simple_flash.h"
 #include "host_messaging.h"
@@ -349,7 +350,13 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     uint8_t message_key[KEY_SIZE] = Message_key;
     uint8_t data_key[KEY_SIZE] = Data_key;
 
-    // Load keys (replace with your key loading logic)
+    secret_t *channel_secrets;
+    read_secrets(channel, channel_secrets);
+
+    mask_key = channel_secrets->mask_key;
+    message_key = channel_secrets->msg_key;
+    data_key = channel_secrets->data_key;
+
     
     // Construct the key for c1
     // XOR mask key with the timestamp
