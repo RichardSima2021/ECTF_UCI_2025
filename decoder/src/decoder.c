@@ -164,35 +164,21 @@ int is_subscribed(channel_id_t channel) {
 
 
 
-void xorArrays(uint8_t *arr1, uint8_t *arr2, u_int8_t* result, size_t length) {
-    uint8_t temporary1[length];
-    uint8_t temporary2[length];
-    int pad_length;
-    if(sizeof(arr1) >= length) {
-        memcpy(temporary1, arr1, length);
-    }
-    else{
-        pad_length = length - sizeof(arr1);
-        memcpy(temporary1, arr1, sizeof(arr1));
-        for (int i = 0; i < pad_length; i++) {
-            temporary1[sizeof(arr1) + i] = 0x00;
-        }
-    }
-    if(sizeof(arr2) >= length) {
-        memcpy(temporary2, arr2, length);
-    }
-    else{
-        pad_length = length - sizeof(arr2);
-        memcpy(temporary2, arr2, sizeof(arr2));
-        for (int i = 0; i < pad_length; i++) {
-            temporary2[sizeof(arr2) + i] = 0x00;
-        }
+int xorArrays(uint8_t *arr1, uint8_t *arr2, size_t arr1_len, size_t arr2_len, u_int8_t* result) {
+
+    // Check if input arrays are valid
+    if (arr1 == NULL || arr2 == NULL || result == NULL) {
+        fprintf(stderr, "Error: Invalid input arrays.\n");
+        return -1;
     }
 
-    for (size_t i = 0; i < length; i++) {
-        result[i] = temporary1[i] ^ temporary2[i];
-    }
-    return result;
+    for (size_t i = 0; i < 16; i++) {
+        uint8_t byte1 = (i < arr1_len) ? arr1[i] : 0x00; // Use 0x00 if arr1 is shorter
+        uint8_t byte2 = (i < arr2_len) ? arr2[i] : 0x00; // Use 0x00 if arr2 is shorter
+        result[i] = byte1 ^ byte2;
+    }  
+
+    return 0;   
 }
 
 void compute_hash(const unsigned char *data, size_t length, unsigned char *hash) {
