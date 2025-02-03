@@ -62,6 +62,10 @@ typedef struct {
 } subscription_update_packet_t;
 
 typedef struct {
+    uint8_t encrypted_packet[52];
+}   encrypted_update_packet;
+
+typedef struct {
     channel_id_t channel;
     timestamp_t start;
     timestamp_t end;
@@ -93,6 +97,7 @@ typedef struct {
     channel_id_t id;
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;
+    timestamp_t current_timestamp;
 } channel_status_t;
 
 typedef struct {
@@ -100,5 +105,6 @@ typedef struct {
     channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
 } flash_entry_t;
 
+typedef uint8_t interwoven_bytes[48];
 
 #endif
