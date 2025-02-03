@@ -226,7 +226,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     */
 
     channel_id_t channel_id;
-    secret_t *channel_secrets
+    secret_t *channel_secrets;
     interwoven_bytes *interwoven_encrypted;
     interwoven_bytes *interwoven_decrypted;
 
