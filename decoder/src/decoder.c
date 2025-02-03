@@ -111,7 +111,7 @@ int list_channels() {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(const unsigned char *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
+int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, unsigned char *checksum) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
     if (intrwvn_msg == NULL) return -1;
@@ -217,6 +217,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     /*   
     2. Update subscription 
         1. Extract first four bytes to get channel ID
+        1.5. Extract rest of encrypted interwoven bytestring
         2. Retrieve secrets from flash to find channel with given ID
         3. Use subscription key from corresponding secret_t to decrypt packet
         4. De-interweave to get concatenated sub info
@@ -224,36 +225,40 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         6. Update sub info
     */
 
-    // TODO: implement
-    // decode(subscription_update_packet_t *encoded_sub_pkt, subscription_update_packet_t *decode_sub_pkt)
-
-    // extract(const unsigned char *decoded_sub_packet, subscription_update_packet_t *update_sub_info, unsigned char *checksum);
-
-
-    // verify_sub_packet(update_sub_info, checksum)
-
     channel_id_t channel_id;
     secret_t *channel_secrets
+    interwoven_bytes *interwoven_encrypted;
+    interwoven_bytes *interwoven_decrypted;
 
-    memcpy(&channel_id, packet->encrypted_packt, sizeof(channel_id_t));
 
+    // encrypted_packet = channel_id (4 bytes) + ciphertext
+    //      ciphertext  = 48 bytes interweaved
+
+    // 1.
+    memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
+    // 1.5
+    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted))
+
+    // 2.
     read_secrets(channel_id, channel_secrets);
 
-    unsigned char int_msg;                  // TO BE IMPLEMENTED
+    // 3.
+    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key&interwoven_decrypted);
+
+    // 4. & 5.
     subscription_update_packet_t update;
     update.channel = channel_id;
 
     unsigned char checksum [20];
 
-    if (extract(int_msg, &update, checksum) != 0) {
+    if (extract(interwoven_decrypted, &update, checksum) != 0) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - could not update subscription\n")
         return -1;
     }
+    
 
-
-    update->channel = channel_id;
-
+    // 6.
     int i;
 
     if (update->channel == EMERGENCY_CHANNEL) {
@@ -291,7 +296,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
             }
             
         }
-        // we should 
     }
 
 

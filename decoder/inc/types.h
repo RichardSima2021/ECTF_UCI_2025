@@ -62,7 +62,7 @@ typedef struct {
 } subscription_update_packet_t;
 
 typedef struct {
-    unsigned char encrypted_packet[52]
+    uint8_t encrypted_packet[52]
 }   encrypted_update_packet;
 
 typedef struct {
@@ -105,5 +105,6 @@ typedef struct {
     channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
 } flash_entry_t;
 
+typedef uint8_t interwoven_bytes[48];
 
 #endif
