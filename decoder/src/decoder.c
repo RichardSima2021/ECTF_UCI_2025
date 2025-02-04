@@ -18,11 +18,15 @@
 #include "mxc_device.h"
 #include "status_led.h"
 #include "board.h"
+#include "advanced_flash.h"
 #include "mxc_delay.h"
 #include "simple_flash.h"
 #include "host_messaging.h"
 
 #include "simple_uart.h"
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
 
 /* Code between this #ifdef and the subsequent #endif will
 *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
@@ -54,6 +58,7 @@
 #define FRAME_SIZE 64
 #define KEY_SIZE 16
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
+#define C1_LENGTH 32
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
 
@@ -61,74 +66,6 @@
 #define Mask_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
 #define Message_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
 #define Data_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
-
-/**********************************************************
- ********************* STATE MACROS ***********************
- **********************************************************/
-
-// Calculate the flash address where we will store channel info as the 2nd to last page available
-#define FLASH_STATUS_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (2 * MXC_FLASH_PAGE_SIZE))
-
-
-/**********************************************************
- *********** COMMUNICATION PACKET DEFINITIONS *************
- **********************************************************/
-
-#pragma pack(push, 1) // Tells the compiler not to pad the struct members
-// for more information on what struct padding does, see:
-// https://www.gnu.org/software/c-intro-and-ref/manual/html_node/Structure-Layout.html
-typedef struct {
-    channel_id_t channel;
-    timestamp_t timestamp;
-    uint8_t data[FRAME_SIZE];
-} frame_packet_t;
-
-typedef struct{
-    channel_id_t channel;
-    timestamp_t timestamp;
-    uint32_t c1_len;
-    uint32_t c2_len;
-    uint8_t iv[KEY_SIZE];
-    uint8_t c1[FRAME_SIZE];
-    uint8_t c2[FRAME_SIZE];
-} encrypted_frame_packet_t;
-
-typedef struct {
-    decoder_id_t decoder_id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-    channel_id_t channel;
-} subscription_update_packet_t;
-
-typedef struct {
-    channel_id_t channel;
-    timestamp_t start;
-    timestamp_t end;
-} channel_info_t;
-
-typedef struct {
-    uint32_t n_channels;
-    channel_info_t channel_info[MAX_CHANNEL_COUNT];
-} list_response_t;
-
-#pragma pack(pop) // Tells the compiler to resume padding struct members
-
-/**********************************************************
- ******************** TYPE DEFINITIONS ********************
- **********************************************************/
-
-typedef struct {
-    bool active;
-    channel_id_t id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-    timestamp_t current_ts;
-} channel_status_t;
-
-typedef struct {
-    uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
-    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
-} flash_entry_t;
 
 /**********************************************************
  ************************ GLOBALS *************************
@@ -160,18 +97,48 @@ int is_subscribed(channel_id_t channel) {
     return 0;
 }
 
-int* xorArrays(const int *arr1, const int *arr2, size_t length) {
-    if (length == 0) {
-        return NULL;
+
+int xorArrays(uint8_t *arr1, size_t arr1_len, uint8_t *arr2, size_t arr2_len, u_int8_t* result) {
+
+    // Check if input arrays are valid
+    if (arr1 == NULL || arr2 == NULL || result == NULL) {
+        fprintf(stderr, "Error: Invalid input arrays.\n");
+        return -1;
     }
-    int *result = (int *)malloc(length * sizeof(int));
-    if (!result) {
-        return NULL;
+
+    for (size_t i = 0; i < 16; i++) {
+        uint8_t byte1 = (i < arr1_len) ? arr1[i] : 0x00; // Use 0x00 if arr1 is shorter
+        uint8_t byte2 = (i < arr2_len) ? arr2[i] : 0x00; // Use 0x00 if arr2 is shorter
+        result[i] = byte1 ^ byte2;
+    }  
+
+    return 0;   
+}
+
+void compute_hash(const unsigned char *data, size_t length, unsigned char *hash) {
+    wc_Sha256 sha256;
+
+    if (wc_InitSha256(&sha256) != 0) {
+        fprintf(stderr, "Failed to initialize SHA-256 context!\n");
+        return; 
     }
-    for (size_t i = 0; i < length; i++) {
-        result[i] = arr1[i] ^ arr2[i];
+
+    if (wc_Sha256Update(&sha256, data, length) != 0) {
+        fprintf(stderr, "Failed to update SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
     }
-    return result;
+
+    unsigned char full_hash[WC_SHA256_DIGEST_SIZE];
+    if (wc_Sha256Final(&sha256, full_hash) != 0) {
+        fprintf(stderr, "Failed to finalize SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    memcpy(hash, full_hash, 16);
+
+    wc_Sha256Free(&sha256);
 }
 
 /**********************************************************
@@ -263,29 +230,50 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     uint16_t frame_size;
     channel_id_t channel;
     timestamp_t timestamp;
-    uint16_t c1_len;
-    uint16_t c2_len;
+
 
     // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
     timestamp = new_frame->timestamp;
-    c1_len = new_frame->c1_len;
-    c2_len = new_frame->c2_len;
 
     // Todo: Decrypt c1 and c2, and validate timestamps
 
     // Decrypt c1 first
+    uint8_t ts_prime[24];
+    uint8_t nonce[16];
+    uint8_t frame_data[64]; // Assuming max frame size is 64 bytes
+    uint8_t mask_key[KEY_SIZE] = Mask_key;
+    uint8_t message_key[KEY_SIZE] = Message_key;
+    uint8_t data_key[KEY_SIZE] = Data_key;
+
+    secret_t *channel_secrets;
+    read_secrets(channel, channel_secrets);
+
+    mask_key = channel_secrets->mask_key;
+    message_key = channel_secrets->msg_key;
+    data_key = channel_secrets->data_key;
+
+    
     // Construct the key for c1
     // XOR mask key with the timestamp
-
-
+    uint8_t c1_key[KEY_SIZE] = {0};
+    memcpy(c1_key, &timestamp, sizeof(timestamp));
+    if (xorArrays(c1_key, KEY_SIZE, mask_key, KEY_SIZE, c1_key) != 0) {
+        print_error("Failed to XOR c1_key and mask_key\n");
+        return -1;
+    }
     // Hash the the XOR result from the previous step
-
+    compute_hash(c1_key, KEY_SIZE, c1_key);
 
     // XOR the hash result with message key to get the decryption key for c1
-
+    if (xorArrays(c1_key, KEY_SIZE, message_key, KEY_SIZE, c1_key) != 0) {
+        print_error("Failed to XOR c1_key and message_key\n");
+        return -1;
+    }
 
     // Decrypt c1 with the decryption key and get timestamp prime
+    decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
+
 
 
     //validate this timestamp
@@ -294,12 +282,25 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Construct the key for c2
     // Extract nounce from the timestamp prime
 
+    // Extract nonce from timestamp prime
+    memcpy(nonce, ts_prime, 8);
+    memcpy(nonce + 8, ts_prime + 16, 8);
 
+
+    // Start to decrypt c2
+    // Construct the key for c2
     // XOR data key with the nounce to get the decryption key for c2
+    uint8_t c2_key[KEY_SIZE] = {0};
+    if (xorArrays(nonce, 16, data_key, KEY_SIZE, c2_key) != 0) {
+        print_error("Failed to XOR nonce and data_key\n");
+        return -1;
+    }
 
+    // Calculate the length of c2
+    int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
 
     // Decrypt c2 with the decryption key and get the frame data
-    
+    decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
     
 
     // Check that we are subscribed to the channel...
@@ -308,7 +309,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
         print_debug("Subscription Valid\n");
         /* The reference design doesn't need any extra work to decode, but your design likely will.
         *  Do any extra decoding here before returning the result to the host. */
-        write_packet(DECODE_MSG, new_frame->data, frame_size);
+        write_packet(DECODE_MSG, frame_data, sizeof(frame_data));
         return 0;
     } else {
         STATUS_LED_RED();
@@ -464,7 +465,6 @@ int main(void) {
 
             // Print the boot flag
             // TODO: Remove this from your design
-            boot_flag();
             list_channels();
             break;
 
