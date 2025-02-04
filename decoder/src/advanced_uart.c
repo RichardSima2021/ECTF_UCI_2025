@@ -9,7 +9,16 @@
 #include "advanced_uart.h"
 #include "uart.h"
 
+int uart_init(void){
+    int ret;
 
+    if ((ret = MXC_UART_Init(MXC_UART_GET_UART(CONSOLE_UART), UART_BAUD, MXC_UART_IBRO_CLK)) != E_NO_ERROR) {
+        printf("Error initializing UART: %d\n", ret);
+        return ret;
+    }
+
+    return E_NO_ERROR;
+}
 
 /** @brief Reads the next available character from UART.
  *  @param status Pointer to a status variable. See MAX78000 error codes for a list.
@@ -17,7 +26,9 @@
 */
 uint8_t uart_readbyte(int* status) {
     uint8_t value;
+    // data is 8 unsigned bits for a char
     int data = MXC_UART_ReadCharacter(MAX_UARTn);
+    // if negative, error status msg
     if (data < 0) {
         *status = data;
         value = 0;
