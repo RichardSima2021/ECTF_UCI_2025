@@ -14,12 +14,10 @@
 #ifndef ECTF_CRYPTO_H
 #define ECTF_CRYPTO_H
 
+#include "random.h"
+
 #include "wolfssl/wolfcrypt/aes.h"
 #include "wolfssl/wolfcrypt/hash.h"
-
-#include "wolfssl/wolfcrypt/chacha.h"
-
-#include "random.h"
 
 #include <string.h>
 #include <stdint.h>
