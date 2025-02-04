@@ -111,7 +111,7 @@ int list_channels() {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, interwoven_bytes *checksum) {
+int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *checksum) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
     if (intrwvn_msg == NULL) return -1;
@@ -132,7 +132,8 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
                   Is this safe?
     */
 
-    interwoven_bytes temp_subscription_arr[20];
+    // Alignment issue
+    uint8_t temp_subscription_arr[20];
 
     // Extract the interwoven message into their respective character arrays
     for (int i = 0; i < 40; i++) {
