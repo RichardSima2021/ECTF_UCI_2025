@@ -4,6 +4,7 @@
 #include "nvic_table.h"
 #include "types.h"
 #include <stdio.h>
+#include <string.h>
 
 
 
@@ -119,6 +120,17 @@ int flash_write(uint32_t address, void *buffer, uint32_t len, char *key) {
 //     uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
 //     flash_read(memory_addr,secret_t,sizeof(secret_t),); //k is not implemented
 // }
+
+int read_secrets(int channel_id, secret_t* secret_buffer) {
+    secret_buffer->channel_id = 1;
+    memset(secret_buffer->mask_key, '1', 16);
+    memset(secret_buffer->msg_key, '1', 16);
+    memset(secret_buffer->data_key, '1', 16);
+    memset(secret_buffer->subscription_key, '1', 16);
+    memset(secret_buffer->check_sum, '1', 24);
+    
+    return 1;
+}
 
 // /**
 //  * @brief Flash Write Secrets
