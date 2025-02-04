@@ -1,8 +1,10 @@
+/*
+*/
 #include "aes.h"
 #include "aes_revb.h"
 #include "mxc_device.h"
 
-void aes_set_key(uint32_t* key, uint8_t num_blocks);
+void aes_set_key(uint32_t* key);
 
 int dummy_encrypt();
 

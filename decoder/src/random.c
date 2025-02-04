@@ -16,6 +16,25 @@ void Rand_String(uint8_t *buf, uint32_t len){
     MXC_TRNG_Shutdown();
 }
 
+void generate_key(mxc_aes_keys_t keySize) {
+    uint32_t keyLenChars;
+    
+    switch (keySize) {
+    case MXC_AES_128BITS:
+        keyLenChars = 4; // keybuffer len = 4 uint32
+        break;
+    case MXC_AES_192BITS:
+        keyLenChars = 6; // keybuffer len = 6 uint32
+        break;
+    case MXC_AES_256BITS:
+        keyLenChars = 8; // keybuffer len = 8 uint32
+        break;
+    };
+
+    uint32_t keyBuffer[keyLenChars];
+    Rand_String(keyBuffer, keyLenChars);
+    aes_set_key(keyBuffer);
+}
 
 
 // void Rand_ASYC(uint8_t *data, uint32_t len){

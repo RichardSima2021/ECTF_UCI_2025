@@ -22,6 +22,9 @@
 #include "advanced_flash.h"
 #include "host_messaging.h"
 #include "types.h"
+
+#include "random.h"
+
 #include "advanced_uart.h"
 
 
@@ -212,10 +215,13 @@ void init() {
         }
 
         // Write the starting channel subscriptions into flash.
+        generate_key(MXC_AES_128BITS);
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+        /*MPU*/
+        
     }
 
     // Initialize the uart peripheral to enable serial I/O
