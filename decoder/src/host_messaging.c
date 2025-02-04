@@ -24,15 +24,16 @@
  *  @return 0 on success. A negative value on error.
 */
 int read_bytes(void *buf, uint16_t len) {
-    int result;
+    int status;
+    uint8_t result;
     int i;
 
     for (i = 0; i < len; i++) {
         if (i % 256 == 0 && i != 0) { // Send an ACK after receiving 256 bytes
             write_ack();
         }
-        result = uart_readbyte();
-        if (result < 0) {  // if there was an error, return immediately
+        result = uart_readbyte(&status);
+        if (status < 0) {  // if there was an error, return immediately
             return result;
         }
         ((uint8_t *)buf)[i] = result;
@@ -46,13 +47,21 @@ int read_bytes(void *buf, uint16_t len) {
  *  @param hdr Pointer to a buffer where the incoming bytes should be stored.
 */
 void read_header(msg_header_t *hdr) {
-    hdr->magic = uart_readbyte();
+    int status;
+
+    hdr->magic = (char)0;
     // Any bytes until '%' will be read, but ignored.
     // Once we receive a '%', continue with processing the rest of the message.
     while (hdr->magic != MSG_MAGIC) {
-        hdr->magic = uart_readbyte();
+        hdr->magic = uart_readbyte(&status);
+        if (status < 0) {
+            // handle error TBD
+        }
     }
-    hdr->cmd = uart_readbyte();
+    hdr->cmd = uart_readbyte(&status);
+    if (status < 0) {
+        // handle error TBD
+    }
     read_bytes(&hdr->len, sizeof(hdr->len));
 }
 

@@ -22,7 +22,7 @@
 #include "advanced_flash.h"
 #include "host_messaging.h"
 #include "types.h"
-#include "simple_uart.h"
+#include "advanced_uart.h"
 
 
 // /* Code between this #ifdef and the subsequent #endif will
