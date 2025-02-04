@@ -67,14 +67,12 @@
 #define Message_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
 #define Data_key {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01}
 
-
 /**********************************************************
  ************************ GLOBALS *************************
  **********************************************************/
 
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
-
 
 /**********************************************************
  ******************* UTILITY FUNCTIONS ********************
@@ -98,7 +96,6 @@ int is_subscribed(channel_id_t channel) {
     }
     return 0;
 }
-
 
 
 int xorArrays(uint8_t *arr1, size_t arr1_len, uint8_t *arr2, size_t arr2_len, u_int8_t* result) {
@@ -220,6 +217,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
     return 0;
 }
 
+
 /** @brief Processes a packet containing frame data.
  *
  *  @param pkt_len A pointer to the incoming packet.
@@ -275,6 +273,14 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Decrypt c1 with the decryption key and get timestamp prime
     decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
+
+
+
+    //validate this timestamp
+    
+    // Start to decrypt c2
+    // Construct the key for c2
+    // Extract nounce from the timestamp prime
 
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
@@ -340,6 +346,7 @@ void init() {
             subscription[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
+            subscription[i].current_ts = 0;
         }
 
         // Write the starting channel subscriptions into flash.
