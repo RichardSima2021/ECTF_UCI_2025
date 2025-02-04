@@ -1,8 +1,10 @@
+#include "advanced_aes.h"
+
 #include "aes.h"
 #include "aes_revb.h"
 #include "mxc_device.h"
 
-void aes_set_key(uint32_t* key, uint8_t num_blocks) {
+void aes_set_key(uint32_t* key) {
 	MXC_AESKEYS->key0 = key[0];
 	MXC_AESKEYS->key1 = key[1];
 	MXC_AESKEYS->key2 = key[2];

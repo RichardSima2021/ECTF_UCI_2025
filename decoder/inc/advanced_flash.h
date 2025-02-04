@@ -8,8 +8,15 @@
 #ifndef ADVANCED_FLASH_H
 #define ADVANCED_FLASH_H
 
+#include "flc.h"
+#include "icc.h"
+#include "nvic_table.h"
+
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+
+#include "advanced_aes.h"
 #include "types.h"
 
 //#include "simple_crypto.h"
