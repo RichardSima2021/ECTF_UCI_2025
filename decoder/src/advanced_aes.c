@@ -1,0 +1,64 @@
+#include "aes.h"
+#include "aes_revb.h"
+#include "mxc_device.h"
+
+void aes_set_key(uint32_t* key, uint8_t num_blocks) {
+	MXC_AESKEYS->key0 = key[0];
+	MXC_AESKEYS->key1 = key[1];
+	MXC_AESKEYS->key2 = key[2];
+	MXC_AESKEYS->key3 = key[3];
+}
+
+int dummy_encrypt() {
+	mxc_aes_req_t req;
+	uint32_t dummy_input[4];
+	uint32_t dummy_output[4];
+
+	req.length = 4;
+	req.inputData = dummy_input;
+	req.resultData = dummy_output;
+	req.keySize = 0;
+	req.encryption = MXC_AES_ENCRYPT_EXT_KEY;
+
+	MXC_AES_Init();
+
+	MXC_AES_Encrypt(&req);
+
+	return E_NO_ERROR;
+}
+
+int encrypt(uint32_t len, uint32_t* data, uint32_t* enc_data) {
+	mxc_aes_req_t req;
+
+	req.length = len;
+	req.inputData = data;
+	req.resultData = enc_data;
+	req.keySize = 0;
+	req.encryption = MXC_AES_ENCRYPT_EXT_KEY;
+
+	MXC_AES_Init();
+
+	MXC_AES_Encrypt(&req);
+
+	return E_NO_ERROR;
+}
+
+int decrypt(uint32_t len, uint32_t* enc_data, uint32_t* dec_data) {
+	mxc_aes_req_t req;
+
+	if ((MXC_AES->ctrl & MXC_F_AES_CTRL_EN) == 0) {
+		dummy_encrypt();
+	}
+
+	req.length = len;
+	req.inputData = enc_data;
+	req.resultData = dec_data;
+	req.keySize = 0;
+	req.encryption = MXC_AES_DECRYPT_INT_KEY;
+
+	MXC_AES_Decrypt(&req);
+
+	MXC_AES_Shutdown();
+
+	return E_NO_ERROR;
+}
