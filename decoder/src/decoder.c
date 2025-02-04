@@ -132,10 +132,7 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
                   Is this safe?
     */
 
-<<<<<<< HEAD
     // Alignment issue
-=======
->>>>>>> 9d6a6c2684d61fa7ba18a780397806ba49092fda
     uint8_t temp_subscription_arr[20];
 
     // Extract the interwoven message into their respective character arrays
