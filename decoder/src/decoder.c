@@ -159,9 +159,9 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
     */
 
     // Pull individual values from temp_subscription_arr
-    subscription_info->decoder_id = (temp_subscription_arr[0] - '0') * 1000 + (temp_subscription_arr[1] - '0') * 100 + (temp_subscription_arr[2] - '0') * 10 + (temp_subscription_arr[3] - '0');
-    subscription_info->start_timestamp = (temp_subscription_arr[4] - '0') * 10000000 + (temp_subscription_arr[5] - '0') * 1000000 + (temp_subscription_arr[6] - '0') * 100000 + (temp_subscription_arr[7] - '0') * 10000 + (temp_subscription_arr[8] - '0') * 1000 + (temp_subscription_arr[9] - '0') * 100 + (temp_subscription_arr[10] - '0') * 10 + (temp_subscription_arr[11] - '0');
-    subscription_info->end_timestamp = (temp_subscription_arr[12] - '0') * 10000000 + (temp_subscription_arr[13] - '0') * 1000000 + (temp_subscription_arr[14] - '0') * 100000 + (temp_subscription_arr[15] - '0') * 10000 + (temp_subscription_arr[16] - '0') * 1000 + (temp_subscription_arr[17] - '0') * 100 + (temp_subscription_arr[18] - '0') * 10 + (temp_subscription_arr[19] - '0');
+    subscription_info->decoder_id = (temp_subscription_arr[3] << 24) + (temp_subscription_arr[2] << 16) + (temp_subscription_arr[1] << 8) + (temp_subscription_arr[0]);
+    subscription_info->start_timestamp = (temp_subscription_arr[4]) + (temp_subscription_arr[5]) + (temp_subscription_arr[6]) + (temp_subscription_arr[7]) + (temp_subscription_arr[8]) + (temp_subscription_arr[9]) + (temp_subscription_arr[10]) + (temp_subscription_arr[11]);
+    subscription_info->end_timestamp = (temp_subscription_arr[12]) + (temp_subscription_arr[13]) + (temp_subscription_arr[14]) + (temp_subscription_arr[15]) + (temp_subscription_arr[16]) + (temp_subscription_arr[17]) + (temp_subscription_arr[18]) + (temp_subscription_arr[19]);
     
     return 0;  // Success
 }
