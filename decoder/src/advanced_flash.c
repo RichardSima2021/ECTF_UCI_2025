@@ -79,15 +79,11 @@ int flash_erase_page(uint32_t address){
  * with the specified amount of bytes and decrypt the buffer with a built-in key
 */
 void flash_read(uint32_t address, void *buffer, uint32_t len, char *key) {
-    MXC_FLC_Read(address, (uint32_t*)buffer, len + CHACHA_IV_SIZE);
+    MXC_FLC_Read(address, (uint32_t*)buffer, len);
     // Decrypt after read:
-    uint8_t plaintext[len];
-    decrypt_chacha(buffer, len, key, plaintext);
+
 
     // Copy the decrypted data into the buffer
-    memcpy(buffer, plaintext, len);
-
-    free(plaintext);
 }
 /**
  * @brief Flash Advanced Write
@@ -104,16 +100,11 @@ void flash_read(uint32_t address, void *buffer, uint32_t len, char *key) {
 */
 int flash_write(uint32_t address, void *buffer, uint32_t len, char *key) {
     // Encrypt before write
-    // encrypt(buffer, key, len);
-    uint8_t ciphertext[len + CHACHA_IV_SIZE];
-    int result = encrypt_chacha(buffer, len, key, ciphertext);
     // Check the bounds of the address to make sure write is to flash
     if (address < MXC_FLASH_MEM_BASE || address >= (MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE)) 
         return -1;
     
-    int error = MXC_FLC_Write(address, len, ciphertext);
-
-    free(ciphertext);
+    int error = MXC_FLC_Write(address, len, buffer);
 
     return error;
 }

@@ -33,25 +33,13 @@
 #include "board.h"
 #include "dma.h"
 #include "aes.h"
-#include "trng.h"
+
+#include "random.h"
 /***** Definitions *****/
 #define MXC_AES_DATA_LENGTH 4 //4 words
 
 #define MXC_AES_ENC_DATA_LENGTH 4 //Always multiple of 4
 //(equal to or greater than MXC_AES_DATA_LENGTH)
-
-int RandomInt(void){
-    MXC_TRNG_Init();
-    int ret = MXC_TRNG_RandomInt();
-    MXC_TRNG_Shutdown();
-    return ret;
-}
-
-void Rand_String(uint8_t *buf, uint32_t len){
-    MXC_TRNG_Init();
-    MXC_TRNG_Random(buf, len);
-    MXC_TRNG_Shutdown();
-}
 
 
 void generate_key(uint32_t* keyBuffer, mxc_aes_keys_t keySize) {
