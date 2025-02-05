@@ -276,6 +276,9 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Decrypt c1 with the decryption key and get timestamp prime
     decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
 
+    print_debug("Decrypted timestamp prime: \n");
+    print_hex_debug(ts_prime, 24);
+
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
     memcpy(nonce + 8, ts_prime + 16, 8);
@@ -295,6 +298,9 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Decrypt c2 with the decryption key and get the frame data
     decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
+
+    print_debug("Decrypted frame data: \n");
+    print_hex_debug(frame_data, c2_length);
     
 
     // Check that we are subscribed to the channel...
@@ -367,19 +373,21 @@ void crypto_example(void) {
 
     // This string is 16 bytes long including null terminator
     // This is the block size of included symmetric encryption
-    // char *data = "Crypto Example!";
-    // uint8_t ciphertext[BLOCK_SIZE];
-    // uint8_t key[KEY_SIZE];
-    // uint8_t hash_out[HASH_SIZE];
-    // uint8_t decrypted[BLOCK_SIZE];
+    char *data = "Crypto Example!";
+    uint8_t ciphertext[BLOCK_SIZE];
+    uint8_t key[KEY_SIZE];
+    uint8_t hash_out[HASH_SIZE];
+    uint8_t decrypted[BLOCK_SIZE];
 
-    // char output_buf[128] = {0};
+    uint8_t iv[BLOCK_SIZE] = {1};
+
+    char output_buf[128] = {0};
 
     // // Zero out the key
-    // bzero(key, BLOCK_SIZE);
+    bzero(key, BLOCK_SIZE);
 
     // // Encrypt example data and print out
-    // encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
+    // encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, , ciphertext);
     // print_debug("Encrypted data: \n");
     // print_hex_debug(ciphertext, BLOCK_SIZE);
 
@@ -391,9 +399,9 @@ void crypto_example(void) {
     // print_hex_debug(hash_out, HASH_SIZE);
 
     // // Decrypt the encrypted message and print out
-    // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-    // sprintf(output_buf, "Decrypted message: %s\n", decrypted);
-    // print_debug(output_buf);
+    decrypt_sym(ciphertext, BLOCK_SIZE, key, iv, decrypted);
+    sprintf(output_buf, "Decrypted message: %s\n", decrypted);
+    print_debug(output_buf);
 }
 #endif  //CRYPTO_EXAMPLE
 
@@ -403,7 +411,7 @@ void crypto_example(void) {
 
 int main(void) {
     char output_buf[128] = {0};
-    uint8_t uart_buf[100];
+    uint8_t uart_buf[128];
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
@@ -412,6 +420,11 @@ int main(void) {
     init();
 
     print_debug("Decoder Booted!\n");
+
+    pkt_len = ;
+    uart_buf = ;
+
+    decode(pkt_len, (encrypted_frame_packet_t *)uart_buf);
 
     #ifdef CRYPTO_EXAMPLE
 
