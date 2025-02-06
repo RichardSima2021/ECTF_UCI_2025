@@ -232,8 +232,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     interwoven_bytes *interwoven_decrypted;
 
 
-    // encrypted_packet = channel_id (4 bytes) + ciphertext
-    //      ciphertext  = 48 bytes interweaved
+    // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
+    //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
     // 1.
     memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
