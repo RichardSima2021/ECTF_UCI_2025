@@ -61,7 +61,7 @@ typedef struct{
     timestamp_t timestamp;
     uint8_t iv[KEY_SIZE];
     uint8_t c1[C1_LENGTH];
-    uint8_t c2[FRAME_SIZE*2];
+    uint8_t c2[FRAME_SIZE];
 } encrypted_frame_packet_t;
 
 typedef struct {

@@ -144,6 +144,19 @@ void compute_hash(const unsigned char *data, size_t length, unsigned char *hash)
     wc_Sha256Free(&sha256);
 }
 
+
+int get_frame_size(uint8_t * frame){
+    int size = 0;
+    for(int i = 0; i<FRAME_SIZE; i++){
+        if(!frame[i]){
+            break;
+        }
+        size++;
+    }
+    return size;
+}
+
+
 /**********************************************************
  ********************* CORE FUNCTIONS *********************
  **********************************************************/
@@ -229,9 +242,9 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
 */
 int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     char output_buf[128] = {0};
-    uint16_t frame_size;
     channel_id_t channel;
     timestamp_t timestamp;
+    timestamp_t timestamp_decrypted;
 
 
     // Get the plain text info from the encrypted frame
@@ -275,12 +288,14 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Decrypt c1 with the decryption key and get timestamp prime
     decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
 
-    print_debug("Decrypted timestamp prime: \n");
-    print_hex_debug(ts_prime, 24);
 
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
     memcpy(nonce + 8, ts_prime + 16, 8);
+
+    
+    memcpy(ts_decrypted, ts_prime + 8, sizeof(timestamp_t));
+    timestamp_decrypted = *(timestamp_t*) ts_decrypted;
 
 
     // Start to decrypt c2
@@ -296,10 +311,8 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
 
     // Decrypt c2 with the decryption key and get the frame data
+    memset(frame_data, 0, FRAME_SIZE);
     decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
-
-    print_debug("Decrypted frame data: \n");
-    print_hex_debug(frame_data, c2_length);
     
 
     // Check that we are subscribed to the channel...
@@ -308,7 +321,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
         print_debug("Subscription Valid\n");
         /* The reference design doesn't need any extra work to decode, but your design likely will.
         *  Do any extra decoding here before returning the result to the host. */
-        write_packet(DECODE_MSG, frame_data, sizeof(frame_data));
+        write_packet(DECODE_MSG, frame_data, get_frame_size(frame_data));
         return 0;
     } else {
         STATUS_LED_RED();
@@ -439,7 +452,7 @@ int main(void) {
     
     uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x62, 0x7C, 0xE5, 0x27, 0xA1, 0xC8, 0xEA, 0x9B, 0x05, 0x82, 0x9A, 0x2F, 0x19, 0x11, 0x6B, 0xF6, 0x3B, 0x02, 0x05, 0xFF, 0x0E, 0xD9, 0xEE, 0xD3, 0xC5, 0xF6, 0xCC, 0xBC, 0xEA, 0x1E, 0x99, 0x3F, 0x81, 0xD4, 0x7B, 0xDA, 0x66, 0xD7, 0x02, 0x6D, 0xE7, 0x55, 0x36, 0x1C, 0x7C, 0xD3, 0xDE, 0x34 };
 
-    decode(100, (encrypted_frame_packet_t *)data);
+    decode(76, (encrypted_frame_packet_t *)data);
 
     // process commands forever
     while (1) {
