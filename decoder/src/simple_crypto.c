@@ -84,7 +84,7 @@ int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t * iv, uin
 
     // Decrypt each block
     for (int i = 0; i < len - 1; i += BLOCK_SIZE) {
-        result = wc_AesCbcDecrypt(&ctx, plaintext + i, ciphertext + i, len);
+        result = wc_AesCbcDecrypt(&ctx, plaintext + i, ciphertext + i, BLOCK_SIZE);
         if (result != 0)
             return result; // Report error
     }

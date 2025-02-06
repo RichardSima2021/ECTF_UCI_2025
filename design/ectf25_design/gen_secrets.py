@@ -25,10 +25,15 @@ def gen_channel_key(stream_length=8) -> dict:
     # Generate a random 16-byte key
     keys = {}
     # 8 length of hex is 16 bytes long, json does not accpet hex.
-    keys["mask_key"] = secret_gen.token_hex(stream_length)
-    keys["msg_key"] = secret_gen.token_hex(stream_length)
-    keys["subscription_key"] = secret_gen.token_hex(stream_length)
-    keys["data_key"] = secret_gen.token_hex(stream_length)
+    # keys["mask_key"] = secret_gen.token_hex(stream_length)
+    # keys["msg_key"] = secret_gen.token_hex(stream_length)
+    # keys["subscription_key"] = secret_gen.token_hex(stream_length)
+    # keys["data_key"] = secret_gen.token_hex(stream_length)
+
+    keys["mask_key"] = '1111111111111111'
+    keys["msg_key"] = '1111111111111111'
+    keys["subscription_key"] = '1111111111111111'
+    keys["data_key"] = '1111111111111111'
 
     return keys
 

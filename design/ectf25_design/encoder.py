@@ -60,6 +60,10 @@ class Encoder:
         aes = AES.new(key, AES.MODE_CBC, iv)
         return aes.encrypt(plaintext)
     
+    def sym_decrypt(self, key, iv, ciphertext):
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        return aes.decrypt(ciphertext)
+    
     def compute_hash(self, data):
         """Compute the SHA-256 hash of the data"""
         hash = SHA256.new()
@@ -95,10 +99,15 @@ class Encoder:
         # TODO: encode the satellite frames so that they meet functional and
         #  security requirements
 
-        mask_key = self.channel_keys[f'channel_key_{channel}']["mask_key"].encode('utf-8')
-        msg_key = self.channel_keys[f'channel_key_{channel}']["msg_key"].encode('utf-8')
-        subscription_key = self.channel_keys[f'channel_key_{channel}']["subscription_key"].encode('utf-8')
-        data_key = self.channel_keys[f'channel_key_{channel}']["data_key"].encode('utf-8')
+        # mask_key = eval(self.channel_keys[f'channel_{channel}']["mask_key"])
+        # msg_key = eval(self.channel_keys[f'channel_{channel}']["msg_key"])
+        # subscription_key = eval(self.channel_keys[f'channel_{channel}']["subscription_key"])
+        # data_key = eval(self.channel_keys[f'channel_{channel}']["data_key"])
+
+        mask_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
+        msg_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
+        subscription_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
+        data_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
 
         # Check the key are all 16 bytes long
         assert len(mask_key) == 16, "The mask key is not 16 bytes long"
@@ -106,25 +115,25 @@ class Encoder:
         assert len(subscription_key) == 16, "The subscription key is not 16 bytes long"
         assert len(data_key) == 16, "The data key is not 16 bytes long"
 
-        nounce = secret_gen.token_bytes(16)
-        iv = secret_gen.token_bytes(16)
+        # nounce = secret_gen.token_bytes(16)
+        # iv = secret_gen.token_bytes(16)
+        nounce = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
+        iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
 
         # Prepare C1 info
         timestamp_prime = nounce[:8] + timestamp.to_bytes(8, 'little') + nounce[8:]
 
         c1_key = self.XOR((self.compute_hash(self.XOR(mask_key, timestamp.to_bytes(8, 'little')))), (msg_key))
+        c1_key = c1_key[:16]
         c1_data = self.pad(timestamp_prime, 16)
         c1 = self.sym_encrypt(c1_key, iv, c1_data)
-        c1_len = len(c1)
 
         # Prepare C2 info
         c2_key = self.XOR(nounce, data_key)
         c2_data = self.pad(frame, 16)
         c2 = self.sym_encrypt(c2_key, iv, c2_data)
-        c2_len = len(c2)
 
-
-        return struct.pack("<IQII", channel, timestamp, c1_len, c2_len) + iv + c1 + c2
+        return struct.pack("<IQ", channel, timestamp) + iv + c1 + c2
     
 
 
