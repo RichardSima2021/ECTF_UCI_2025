@@ -245,20 +245,17 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     channel_id_t channel;
     timestamp_t timestamp;
     timestamp_t timestamp_decrypted;
+    uint8_t ts_prime[C1_LENGTH];
+    uint8_t ts_decrypted[sizeof(timestamp_t)];
+    uint8_t nonce[KEY_SIZE];
+    uint8_t frame_data[FRAME_SIZE];
+    uint8_t c1_key[KEY_SIZE] = {0};
+    uint8_t c2_key[KEY_SIZE] = {0};
 
 
     // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
     timestamp = new_frame->timestamp;
-
-    // Todo: Decrypt c1 and c2, and validate timestamps
-
-    // Decrypt c1 first
-
-    uint8_t ts_prime[C1_LENGTH];
-    uint8_t ts_decrypted[sizeof(timestamp_t)];
-    uint8_t nonce[KEY_SIZE];
-    uint8_t frame_data[FRAME_SIZE]; // Assuming max frame size is 64 bytes
 
     // secret_t *channel_secrets;
     // read_secrets(channel, channel_secrets);
@@ -267,10 +264,26 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // message_key = channel_secrets->msg_key;
     // data_key = channel_secrets->data_key;
 
+
+    // Check that we are subscribed to the channel...
+    print_debug("Checking subscription\n");
+    if (!is_subscribed(channel)) {
+        STATUS_LED_RED();
+        sprintf(
+            output_buf,
+            "Receiving unsubscribed channel data.  %u\n", channel);
+        print_error(output_buf);
+        return -1;
+    }
+
+    print_debug("Subscription Valid\n");
+
+    // Todo: Decrypt c1 and c2, and validate timestamps
+
+    // Decrypt c1 first
     
     // Construct the key for c1
     // XOR mask key with the timestamp
-    uint8_t c1_key[KEY_SIZE] = {0};
     memcpy(c1_key, &timestamp, sizeof(timestamp));
     if (xorArrays(c1_key, KEY_SIZE, mask_key, KEY_SIZE, c1_key) != 0) {
         print_error("Failed to XOR c1_key and mask_key\n");
@@ -301,7 +314,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Start to decrypt c2
     // Construct the key for c2
     // XOR data key with the nounce to get the decryption key for c2
-    uint8_t c2_key[KEY_SIZE] = {0};
     if (xorArrays(nonce, 16, data_key, KEY_SIZE, c2_key) != 0) {
         print_error("Failed to XOR nonce and data_key\n");
         return -1;
@@ -313,24 +325,13 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Decrypt c2 with the decryption key and get the frame data
     memset(frame_data, 0, FRAME_SIZE);
     decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
-    
 
-    // Check that we are subscribed to the channel...
-    print_debug("Checking subscription\n");
-    if (is_subscribed(channel)) {
-        print_debug("Subscription Valid\n");
-        /* The reference design doesn't need any extra work to decode, but your design likely will.
-        *  Do any extra decoding here before returning the result to the host. */
-        write_packet(DECODE_MSG, frame_data, get_frame_size(frame_data));
-        return 0;
-    } else {
-        STATUS_LED_RED();
-        sprintf(
-            output_buf,
-            "Receiving unsubscribed channel data.  %u\n", channel);
-        print_error(output_buf);
-        return -1;
-    }
+
+    // TODO: Validation of Time Stamp Here
+
+    
+    write_packet(DECODE_MSG, frame_data, get_frame_size(frame_data));
+    return 0;
 }
 
 /** @brief Initializes peripherals for system boot.
