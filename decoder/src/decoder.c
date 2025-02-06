@@ -281,7 +281,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Extract nonce from timestamp prime
     memcpy(nonce, ts_prime, 8);
     memcpy(nonce + 8, ts_prime + 16, 8);
-    memcpy
 
 
     // Start to decrypt c2
