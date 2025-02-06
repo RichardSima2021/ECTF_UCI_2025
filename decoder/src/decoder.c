@@ -219,7 +219,7 @@ void init() {
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
         /*MPU*/
         
     }
@@ -279,7 +279,7 @@ void crypto_example(void) {
 
 int main(void) {
     char output_buf[128] = {0};
-    uint8_t uart_buf[100];
+    uint8_t uart_buf[128]; // longest possible packet is 124 bytes
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
@@ -316,7 +316,8 @@ int main(void) {
 
         if (result < 0) {
             STATUS_LED_ERROR();
-            print_error("Failed to receive cmd from host\n");
+            print_error("Failed to receive cmd from host. Flushing UART...\n");
+            uart_flush(); // Flush UART after recieving a bad packet
             continue;
         }
 

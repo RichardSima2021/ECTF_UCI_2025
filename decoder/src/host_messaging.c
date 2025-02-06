@@ -29,15 +29,17 @@ int read_bytes(void *buf, uint16_t len) {
     int i;
 
     for (i = 0; i < len; i++) {
-        if (i % 256 == 0 && i != 0) { // Send an ACK after receiving 256 bytes
-            write_ack();
-        }
+        // Never expect to ACK since the max length is 124 bytes
+        // if (i % 256 == 0 && i != 0) { // Send an ACK after receiving 256 bytes
+        //     write_ack();
+        // }
         result = uart_readbyte(&status);
         if (status < 0) {  // if there was an error, return immediately
             return result;
         }
         ((uint8_t *)buf)[i] = result;
     }
+    write_ack(); // ACK the final block
 
     return 0;
 }
@@ -55,14 +57,14 @@ void read_header(msg_header_t *hdr) {
     while (hdr->magic != MSG_MAGIC) {
         hdr->magic = uart_readbyte(&status);
         if (status < 0) {
-            // handle error TBD
+            // TODO: handle error
         }
     }
     hdr->cmd = uart_readbyte(&status);
     if (status < 0) {
-        // handle error TBD
+        // TODO: handle error
     }
-    read_bytes(&hdr->len, sizeof(hdr->len));
+    read_bytes(&hdr->len, 2); // sizeof(&hdr->len) always 2
 }
 
 /** @brief Receive an ACK from UART.
@@ -164,6 +166,7 @@ int write_packet(msg_type_t type, const void *buf, uint16_t len) {
     if (type != DEBUG_MSG && read_ack() < 0) {
         return -1;
     }
+
     // If there is data to write, write it
     if (len > 0) {
         result = write_bytes(buf, len, type != DEBUG_MSG);
@@ -200,6 +203,14 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
         *len = header.len;
     }
 
+    if (cmd == DECODE_MSG && len > 124) {
+        return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
+    } else if (cmd == SUBSCRIBE_MSG && len > 68) {
+        return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
+    } else if (cmd == LIST_MSG && len != 0) {
+        return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
+    }
+
     if (header.cmd != ACK_MSG) {
         write_ack();  // ACK the header
         if (header.len && buf != NULL) {
@@ -213,5 +224,6 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
             }
         }
     }
+    uart_flush(); // Flush any remaining bytes in the UART buffer
     return 0;
 }

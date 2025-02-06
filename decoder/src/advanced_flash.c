@@ -94,7 +94,7 @@ void flash_read(uint32_t address, void *buffer, uint32_t len, char *key) {
  * way e.g. 1->0. To rewrite previously written memory see the 
  * flash_simple_erase_page documentation. 
 */
-int flash_write(uint32_t address, void *buffer, uint32_t len) {
+int flash_write(uint32_t address, void* buffer, uint32_t len, char* key) {
     // Encrypt before write
     // Check the bounds of the address to make sure write is to flash
     if (address < MXC_FLASH_MEM_BASE || address >= (MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE)) 
