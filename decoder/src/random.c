@@ -2,6 +2,7 @@
 
 volatile int wait;
 volatile int callback_result;
+#define ONE_SEC 1000000
 
 /**
  * @brief  Generate a random number
@@ -29,7 +30,8 @@ void Rand_String(uint8_t *buf, uint32_t len){
  * @brief  Generate a random key with a given key size and set into aes key buffer
  * @param  keySize: key size according to AES key sizes 
  */
-void generate_key(mxc_aes_keys_t keySize) {
+void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
+    //run generate key on first boot, and write it to flash.
     uint32_t keyLenChars;
     
     switch (keySize) {
@@ -46,7 +48,22 @@ void generate_key(mxc_aes_keys_t keySize) {
 
     uint32_t keyBuffer[keyLenChars];
     Rand_String(keyBuffer, keyLenChars);
-    aes_set_key(keyBuffer);
+    // write key to flash (write it in overlay region)
+
+    flash_write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
+    memset(keyBuffer, 0, sizeof(key));
+
+    // MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
+}
+
+
+void Random_Delay(){
+    //Tested
+    int i = RandomInt();
+    i &= 0x7FFFFFFF;
+    int j  = i%DELAY_LIMIT;
+    printf("Random Delay: %d\n", j);
+    MXC_Delay(j);
 }
 
 

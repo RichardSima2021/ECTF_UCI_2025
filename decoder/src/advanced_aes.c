@@ -3,12 +3,32 @@
 #include "aes.h"
 #include "aes_revb.h"
 #include "mxc_device.h"
+#include "random.h"
 
 void aes_set_key(uint32_t* key) {
 	MXC_AESKEYS->key0 = key[0];
 	MXC_AESKEYS->key1 = key[1];
 	MXC_AESKEYS->key2 = key[2];
 	MXC_AESKEYS->key3 = key[3];
+}
+
+int aes_init() {
+#ifndef MSDK_NO_GPIO_CLK_INIT
+    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_AES);
+    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TRNG);
+#endif
+
+	// generate_key();
+
+	// Clear control
+    MXC_AES->ctrl = 0x00;
+	
+
+	while (MXC_AES_IsBusy() != E_NO_ERROR) {}
+
+    MXC_AES->ctrl |= ((uint32_t)(0x1UL << 0)); // enable control, position 0
+
+    return E_NO_ERROR;
 }
 
 int dummy_encrypt() {
@@ -22,7 +42,8 @@ int dummy_encrypt() {
 	req.keySize = 0;
 	req.encryption = MXC_AES_ENCRYPT_EXT_KEY;
 
-	MXC_AES_Init();
+	// MXC_AES_Init();
+	aes_init();
 
 	MXC_AES_Encrypt(&req);
 
@@ -38,7 +59,8 @@ int encrypt(uint32_t len, uint32_t* data, uint32_t* enc_data) {
 	req.keySize = 0;
 	req.encryption = MXC_AES_ENCRYPT_EXT_KEY;
 
-	MXC_AES_Init();
+	// MXC_AES_Init();
+	aes_init();
 
 	MXC_AES_Encrypt(&req);
 

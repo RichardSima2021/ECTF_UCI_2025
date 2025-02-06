@@ -42,7 +42,7 @@ void flash_init(void);
  * This function reads data from the specified flash page into the buffer 
  * and decrypt the buffer with the specified amount of bytes
 */
-void flash_read(uint32_t address, void* buffer, uint32_t size, char* key);//need key type
+void flash_read(uint32_t address, void* buffer, uint32_t size);//need key type
 
 
 /**
@@ -57,7 +57,7 @@ void flash_read(uint32_t address, void* buffer, uint32_t size, char* key);//need
  * way e.g. 1->0. To rewrite previously written memory see the 
  * flash_simple_erase_page documentation.
 */
-int flash_write(uint32_t address, void* buffer, uint32_t size, char* key);//need key type
+int flash_write(uint32_t address, void* buffer, uint32_t size);//need key type
 
 
 /**

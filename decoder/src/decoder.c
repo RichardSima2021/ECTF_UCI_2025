@@ -144,7 +144,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);
-    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
@@ -191,6 +191,10 @@ int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
 */
 void init() {
     int ret;
+    NVIC_DisableIRQ(DMA0_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA1_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA2_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA3_IRQn);//disable DMA interrupt
 
     // Initialize the flash peripheral to enable access to persistent memory
     flash_init();
@@ -215,14 +219,26 @@ void init() {
         }
 
         // Write the starting channel subscriptions into flash.
-        generate_key(MXC_AES_128BITS);
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+
+        // Generate random flash key
+        generate_key(MXC_AES_128BITS, FLASH_SECRET);
+
         /*MPU*/
+        // mpu_setup();
         
-    }
+    }/// If not first boot
+    
+    // Read the key from flash
+    uint32_t key[4];
+    flash_read(FLASH_SECRET_KEY_ADDR, key, sizeof(key));
+    aes_set_key(key);
+    
+    memset(key, 0, sizeof(key));
+    
 
     // Initialize the uart peripheral to enable serial I/O
     ret = uart_init();

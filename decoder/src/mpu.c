@@ -45,6 +45,8 @@ uint8_t mpu_setup() {
     }
 
     // Enable MPU
+    //Random Delay
+    
     MPU->CTRL = MPU_CTRL_ENABLE_Msk;
 
     __DSB();
