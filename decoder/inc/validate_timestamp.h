@@ -1,6 +1,7 @@
-#include "decoder.h"
-#include "strings.h"
+#include "types.h"
+#include <string.h>
 
+extern flash_entry_t decoder_status;
 
 /** @brief Checks if the extracted timestamp is valid in terms of: 
  *              1. The given and the extracted match
@@ -35,6 +36,4 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp);
  * 
 */
 
-int clean_up(){
-    return memset(&decoder_status, 0, sizeof(flash_entry_t));
-}
+void clean_up();

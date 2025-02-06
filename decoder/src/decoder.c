@@ -22,6 +22,7 @@
 #include "mxc_delay.h"
 #include "simple_flash.h"
 #include "host_messaging.h"
+#include "../inc/types.h"
 
 #include "simple_uart.h"
 

@@ -1,9 +1,15 @@
-#include "decoder.h"
-#include "advanced_flash.h"
+#include "../inc/types.h"
+#include "../inc/advanced_flash.h"
+//#include "decoder.c"
 #include <stdint.h>
 #include <string.h>
-# define TIMESTAMP_LENGTH 8;
+#define TIMESTAMP_LENGTH 8
 
+extern flash_entry_t decoder_status;
+
+void clean_up(){
+    memset(&decoder_status, 0, sizeof(flash_entry_t));
+}
 
 int check_two_timestamp(timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
     //do a memcmp and return 0 if the result is correct, else return 1
@@ -31,7 +37,7 @@ int extract_channel_idx(int channel_id){
 }
 
 
-int check_increasing(int channel_id, timestamp_t extracted_timesamp){
+int check_increasing(int channel_id, timestamp_t extracted_timestamp){
 
     //1. extract the channel_status strcuture from the flash
     char flash_secret[16]; memset(flash_secret,0,16);
@@ -62,7 +68,7 @@ int check_increasing(int channel_id, timestamp_t extracted_timesamp){
 
 }
 
-int within_frame(int channel_id, timestamp_t extracted_timesamp){
+int within_frame(int channel_id, timestamp_t extracted_timestamp){
 
     int idx=extract_channel_idx(channel_id);
     if(idx==-1){
