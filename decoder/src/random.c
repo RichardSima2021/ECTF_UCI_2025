@@ -1,4 +1,6 @@
 #include "random.h"
+#include <string.h>
+#include "mxc_delay.h"
 
 volatile int wait;
 volatile int callback_result;
@@ -20,9 +22,9 @@ int RandomInt(void){
  * @param  buf: buffer to store the random number string
  * @param  len: length of the random number string
  */
-void Rand_String(uint8_t *buf, uint32_t len){
+void Rand_String(uint32_t *buf, uint32_t len){
     MXC_TRNG_Init();
-    MXC_TRNG_Random(buf, len);
+    MXC_TRNG_Random((uint8_t*)buf, len * 4);
     MXC_TRNG_Shutdown();
 }
 
@@ -50,14 +52,16 @@ void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
     Rand_String(keyBuffer, keyLenChars);
     // write key to flash (write it in overlay region)
 
-    flash_write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
-    memset(keyBuffer, 0, sizeof(key));
+    flash_write(address, keyBuffer, keyLenChars * sizeof(uint32_t));
+    memset(keyBuffer, 0, keyLenChars * sizeof(uint32_t));
 
     // MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
 }
 
 
 void Random_Delay(){
+	// TODO: Temp value, redefine this later
+	#define DELAY_LIMIT 1000
     //Tested
     int i = RandomInt();
     i &= 0x7FFFFFFF;
