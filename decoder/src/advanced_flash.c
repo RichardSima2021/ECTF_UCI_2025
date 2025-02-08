@@ -1,4 +1,5 @@
 #include "advanced_flash.h"
+#include <string.h>
 
 /**
  * @brief ISR for the Flash Controller

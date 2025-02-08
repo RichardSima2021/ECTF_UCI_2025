@@ -200,7 +200,7 @@ void init() {
     flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -234,7 +234,7 @@ void init() {
     
     // Read the key from flash
     uint32_t key[4];
-    flash_read(FLASH_SECRET_KEY_ADDR, key, sizeof(key));
+    flash_read(FLASH_SECRET, key, sizeof(key));
     aes_set_key(key);
     
     memset(key, 0, sizeof(key));
