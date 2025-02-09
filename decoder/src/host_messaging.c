@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "host_messaging.h"
+#include "types.h"
 
 
 /** @brief Read len bytes from UART, acknowledging after every 256 bytes.
@@ -37,6 +38,7 @@ int read_bytes(void *buf, uint16_t len) {
         if (status < 0) {  // if there was an error, return immediately
             return result;
         }
+        if (i >= BUF_LEN) return -1;
         ((uint8_t *)buf)[i] = result;
     }
     write_ack(); // ACK the final block
@@ -56,14 +58,16 @@ void read_header(msg_header_t *hdr) {
     // Once we receive a '%', continue with processing the rest of the message.
     while (hdr->magic != MSG_MAGIC) {
         hdr->magic = uart_readbyte(&status);
-        if (status < 0) {
-            // TODO: handle error
-        }
+        // hardfaults on E_OVERFLOW (status = -13) error
+        volatile int x = 5 / (13 + status); // NOTE: Remove this if we hardfault
+        // if (status < 0) {
+        //     // underflow error
+        //     // see MXC_UART_RevB_ReadCharacterRaw
+        // }
     }
     hdr->cmd = uart_readbyte(&status);
-    if (status < 0) {
-        // TODO: handle error
-    }
+    volatile int x = 5 / (13 + status); // see above
+
     read_bytes(&hdr->len, 2); // sizeof(&hdr->len) always 2
 }
 
@@ -98,6 +102,7 @@ int write_bytes(const void *buf, uint16_t len, bool should_ack) {
                 return -1;
             }
         }
+        if (i >= BUF_LEN) return -1;
         uart_writebyte(((uint8_t *)buf)[i]);
     }
 
@@ -206,9 +211,9 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
     if (cmd == DECODE_MSG && len > 124) {
         return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
     } else if (cmd == SUBSCRIBE_MSG && len > 68) {
-        return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
+        return -1; // Reject packets larger than 68 bytes, invalid lengths are not handled
     } else if (cmd == LIST_MSG && len != 0) {
-        return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
+        return -1; // Reject packets larger than 0 bytes, invalid lengths are not handled
     }
 
     if (header.cmd != ACK_MSG) {

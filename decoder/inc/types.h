@@ -17,6 +17,7 @@
  *********************** CONSTANTS ************************
  **********************************************************/
 
+#define BUF_LEN 128
 #define MAX_CHANNEL_COUNT 8
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64

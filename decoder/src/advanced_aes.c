@@ -4,22 +4,27 @@
 #include "aes_revb.h"
 #include "mxc_device.h"
 #include "random.h"
+#include "flc.h"
+#include <string.h>
 
+/**
+ * @brief Set the AES key into thte AES key registers 
+ */
 void aes_set_key() {
-    flash_read(FLASH_SECRET, key, sizeof(key)); // flash_read_raw
+	uint32_t key[4];
+    MXC_FLC_Read(FLASH_SECRET, key, 4 * sizeof(uint32_t)); // flash_read_raw
 	MXC_AESKEYS->key0 = key[0];
 	MXC_AESKEYS->key1 = key[1];
 	MXC_AESKEYS->key2 = key[2];
 	MXC_AESKEYS->key3 = key[3];
+	memset(key, 0, 4 * sizeof(uint32_t));
 }
 
 int aes_init() {
-#ifndef MSDK_NO_GPIO_CLK_INIT
-    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_AES);
-    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TRNG);
-#endif
-
-	// generate_key();
+// #ifndef MSDK_NO_GPIO_CLK_INIT
+//     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_AES);
+//     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TRNG);
+// #endif
 
 	// Clear control
     MXC_AES->ctrl = 0x00;
@@ -31,7 +36,9 @@ int aes_init() {
 
     return E_NO_ERROR;
 }
-
+/**
+ * @brief dummy encrypt with arbitrary data
+ */
 int dummy_encrypt() {
 	mxc_aes_req_t req;
 	uint32_t dummy_input[4];
@@ -50,7 +57,12 @@ int dummy_encrypt() {
 
 	return E_NO_ERROR;
 }
-
+/** 
+ * @brief Encrypt the data using AES
+ * @param len Length of the data
+ * @param data pointer to buffer containing data to be encrypted
+ * @param enc_data pointer to buffer to store encrypted data
+*/
 int encrypt(uint32_t len, uint32_t* data, uint32_t* enc_data) {
 	mxc_aes_req_t req;
 
@@ -67,7 +79,12 @@ int encrypt(uint32_t len, uint32_t* data, uint32_t* enc_data) {
 
 	return E_NO_ERROR;
 }
-
+/**
+ * @brief Decrypt the data using AES
+ * @param len Length of the data
+ * @param enc_data pointer to buffer containing data to be decrypted
+ * @param dec_data pointer to buffer to store decrypted data
+ */
 int decrypt(uint32_t len, uint32_t* enc_data, uint32_t* dec_data) {
 	mxc_aes_req_t req;
 

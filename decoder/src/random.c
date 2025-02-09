@@ -60,7 +60,9 @@ void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
     // MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
 }
 
-
+/**
+ * @brief  Generate random delay
+ */
 void Random_Delay(){
 	// TODO: Temp value, redefine this later
 	

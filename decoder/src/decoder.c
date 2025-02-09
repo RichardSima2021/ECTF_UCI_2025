@@ -27,6 +27,8 @@
 
 #include "advanced_uart.h"
 
+#include "mpu.h"
+
 
 // /* Code between this #ifdef and the subsequent #endif will
 // *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
@@ -158,7 +160,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
 int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
-    char output_buf[128] = {0};
+    char output_buf[512] = {0};
     uint16_t frame_size;
     channel_id_t channel;
 
@@ -210,7 +212,7 @@ void init() {
 
         // Generate random flash key
         generate_key(MXC_AES_128BITS, FLASH_SECRET);
-        aes_set_key(key);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -232,15 +234,11 @@ void init() {
         /** TODO: Call generate secrets to load tachi keys */
         
     } else {// If not first boot
+        aes_set_key();
     }
     
 
-
-    aes_set_key();
     
-    memset(key, 0, sizeof(key));
-    
-
     // Initialize the uart peripheral to enable serial I/O
     ret = uart_init();
     if (ret < 0) {
@@ -249,6 +247,7 @@ void init() {
         while (1);
     }
 
+    // Last thing we do is set up MPU to set up read/write accesses
     mpu_setup();
 }
 
@@ -313,8 +312,8 @@ void flash_test() {
  **********************************************************/
 
 int main(void) {
-    char output_buf[128] = {0};
-    uint8_t uart_buf[128]; // longest possible packet is 124 bytes
+    char output_buf[BUF_LEN] = {0};
+    uint8_t uart_buf[BUF_LEN]; // longest possible packet is 124 bytes
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
