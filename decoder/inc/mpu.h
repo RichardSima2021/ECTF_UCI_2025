@@ -11,6 +11,7 @@
 
 #include "max78000.h"
 #include <stdint.h>
+#include "random.h"
 
 #define MPU_DEFS_RASR_SIZE_32B (0x04 << MPU_RASR_SIZE_Pos)
 #define MPU_DEFS_RASR_SIZE_64B (0x05 << MPU_RASR_SIZE_Pos)

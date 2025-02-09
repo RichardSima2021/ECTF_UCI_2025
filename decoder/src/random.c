@@ -1,10 +1,12 @@
 #include "random.h"
 #include <string.h>
 #include "mxc_delay.h"
+#include "flc.h"
+
 
 volatile int wait;
 volatile int callback_result;
-#define ONE_SEC 1000000
+#define DELAY_LIMIT 25000
 
 /**
  * @brief  Generate a random number
@@ -52,7 +54,7 @@ void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
     Rand_String(keyBuffer, keyLenChars);
     // write key to flash (write it in overlay region)
 
-    flash_write(address, keyBuffer, keyLenChars * sizeof(uint32_t));
+    MXC_FLC_Write(address, keyBuffer, keyLenChars * sizeof(uint32_t)); // flash_write_raw
     memset(keyBuffer, 0, keyLenChars * sizeof(uint32_t));
 
     // MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
@@ -61,7 +63,7 @@ void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
 
 void Random_Delay(){
 	// TODO: Temp value, redefine this later
-	#define DELAY_LIMIT 1000
+	
     //Tested
     int i = RandomInt();
     i &= 0x7FFFFFFF;

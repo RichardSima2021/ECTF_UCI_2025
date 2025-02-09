@@ -5,7 +5,8 @@
 #include "mxc_device.h"
 #include "random.h"
 
-void aes_set_key(uint32_t* key) {
+void aes_set_key() {
+    flash_read(FLASH_SECRET, key, sizeof(key)); // flash_read_raw
 	MXC_AESKEYS->key0 = key[0];
 	MXC_AESKEYS->key1 = key[1];
 	MXC_AESKEYS->key2 = key[2];

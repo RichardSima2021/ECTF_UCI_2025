@@ -30,7 +30,8 @@ uint8_t mpu_setup() {
     // Secrets Region
     MPU->RNR = 7;
     MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 3 * MXC_FLASH_PAGE_SIZE; 
-    MPU->RASR = (MPU_DEFS_RASR_SIZE_8KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RO | MPU_RASR_ENABLE_Msk);
+    //MPU->RASR = (MPU_DEFS_RASR_SIZE_8KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RO | MPU_RASR_ENABLE_Msk);
+    MPU->RASR = (MPU_DEFS_RASR_SIZE_8KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_RO | MPU_RASR_ENABLE_Msk);
 
     // Secrets Overlay Region
     MPU->RNR = 6;
@@ -46,7 +47,7 @@ uint8_t mpu_setup() {
 
     // Enable MPU
     //Random Delay
-    
+    Random_Delay();
     MPU->CTRL = MPU_CTRL_ENABLE_Msk;
 
     __DSB();

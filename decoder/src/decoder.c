@@ -208,6 +208,10 @@ void init() {
         */
         print_debug("First boot.  Setting flash...\n");
 
+        // Generate random flash key
+        generate_key(MXC_AES_128BITS, FLASH_SECRET);
+        aes_set_key(key);
+
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
         channel_status_t subscription[MAX_CHANNEL_COUNT];
@@ -224,18 +228,15 @@ void init() {
         flash_erase_page(FLASH_STATUS_ADDR);
         flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
-        // Generate random flash key
-        generate_key(MXC_AES_128BITS, FLASH_SECRET);
 
-        /*MPU*/
-        // mpu_setup();
+        /** TODO: Call generate secrets to load tachi keys */
         
-    }/// If not first boot
+    } else {// If not first boot
+    }
     
-    // Read the key from flash
-    uint32_t key[4];
-    flash_read(FLASH_SECRET, key, sizeof(key));
-    aes_set_key(key);
+
+
+    aes_set_key();
     
     memset(key, 0, sizeof(key));
     
@@ -247,6 +248,8 @@ void init() {
         // if uart fails to initialize, do not continue to execute
         while (1);
     }
+
+    mpu_setup();
 }
 
 // /* Code between this #ifdef and the subsequent #endif will
@@ -295,8 +298,8 @@ void flash_test() {
     uint8_t read_data[16] = {0};
 
     flash_erase_page(FLASH_STATUS_ADDR);
-    flash_write(FLASH_STATUS_ADDR, data, sizeof(data), "");
-    flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data), "");
+    flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
+    flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
 
     sprintf(output_buf, "Flash test: %s\n", read_data);
     print_debug(output_buf);
