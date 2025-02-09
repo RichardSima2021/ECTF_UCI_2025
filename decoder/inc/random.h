@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "advanced_aes.h"
+#include "advanced_flash.h"
 
 #include "trng.h"
 #include "aes.h"
@@ -11,8 +12,8 @@
 
 int RandomInt(void);
 
-void Rand_String(uint8_t *buf, uint32_t len);
+void Rand_String(uint32_t *buf, uint32_t len);
 
-void generate_key(mxc_aes_keys_t keySize);
+void generate_key(mxc_aes_keys_t keySize, uint32_t address);
 
 #endif

@@ -1,8 +1,15 @@
 #include "random.h"
+#include <string.h>
+#include "mxc_delay.h"
 
 volatile int wait;
 volatile int callback_result;
+#define ONE_SEC 1000000
 
+/**
+ * @brief  Generate a random number
+ * @return Random number
+ */
 int RandomInt(void){
     MXC_TRNG_Init();
     int ret = MXC_TRNG_RandomInt();
@@ -10,13 +17,23 @@ int RandomInt(void){
     return ret;
 }
 
-void Rand_String(uint8_t *buf, uint32_t len){
+/**
+ * @brief  Generate a random number string with a given length into a buffer
+ * @param  buf: buffer to store the random number string
+ * @param  len: length of the random number string
+ */
+void Rand_String(uint32_t *buf, uint32_t len){
     MXC_TRNG_Init();
-    MXC_TRNG_Random(buf, len);
+    MXC_TRNG_Random((uint8_t*)buf, len * 4);
     MXC_TRNG_Shutdown();
 }
 
-void generate_key(mxc_aes_keys_t keySize) {
+/**
+ * @brief  Generate a random key with a given key size and set into aes key buffer
+ * @param  keySize: key size according to AES key sizes 
+ */
+void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
+    //run generate key on first boot, and write it to flash.
     uint32_t keyLenChars;
     
     switch (keySize) {
@@ -33,7 +50,24 @@ void generate_key(mxc_aes_keys_t keySize) {
 
     uint32_t keyBuffer[keyLenChars];
     Rand_String(keyBuffer, keyLenChars);
-    aes_set_key(keyBuffer);
+    // write key to flash (write it in overlay region)
+
+    flash_write(address, keyBuffer, keyLenChars * sizeof(uint32_t));
+    memset(keyBuffer, 0, keyLenChars * sizeof(uint32_t));
+
+    // MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer);
+}
+
+
+void Random_Delay(){
+	// TODO: Temp value, redefine this later
+	#define DELAY_LIMIT 1000
+    //Tested
+    int i = RandomInt();
+    i &= 0x7FFFFFFF;
+    int j  = i%DELAY_LIMIT;
+    printf("Random Delay: %d\n", j);
+    MXC_Delay(j);
 }
 
 

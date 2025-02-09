@@ -2,7 +2,12 @@
 #include <stdint.h>
 
 
-
+/**
+* @brief    Setup the MPU
+* @details  This function sets up the MPU to protect the ROM and Flash memory regions
+*           from being written to.
+* @returns  0 if successful
+*/
 uint8_t mpu_setup() {
     uint8_t i;
 
@@ -40,6 +45,8 @@ uint8_t mpu_setup() {
     }
 
     // Enable MPU
+    //Random Delay
+    
     MPU->CTRL = MPU_CTRL_ENABLE_Msk;
 
     __DSB();
