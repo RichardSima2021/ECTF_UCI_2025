@@ -64,7 +64,7 @@ def gen_subscription(
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
     
-    ret = channel.to_bytes(4, byteorder="little", signed=False)
+    channel_num = channel.to_bytes(4, byteorder="little", signed=False)
 
     '''
     print("interwoven_bytestring length: ", len(interwoven_bytestring))
@@ -74,7 +74,7 @@ def gen_subscription(
     print("ret + encrypted_data length: ", len(ret + encrypted_data))
     print("ret + encrpted_data: ", ret + encrypted_data)
     '''
-    return ret + encrypted_data
+    return channel_num + encrypted_data
     
 
 def pad(data, block_size):
