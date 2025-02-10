@@ -157,7 +157,7 @@ def parse_args():
 
     decode_parser = subparsers.add_parser("decode", help="Test the decoder")
     decode_parser.set_defaults(tester=test_decoder)
-    decode_parser.set_defaults(threshold=100.0)
+    decode_parser.set_defaults(threshold=10.0)
     decode_parser.add_argument(
         "port",
         help="Serial port to the Decoder (See https://rules.ectf.mitre.org/2025/getting_started/boot_reference for platform-specific instructions)",
