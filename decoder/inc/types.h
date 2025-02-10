@@ -23,9 +23,12 @@
 #define MAX_CHANNEL_COUNT 8
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
+#define DEFAULT_CHANNEL_ID -1
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
+#define KEY_SIZE 16
+#define C1_LENGTH 32
 
 
 
@@ -73,6 +76,7 @@ typedef struct {
     channel_id_t channel;
 } subscription_update_packet_t;
 
+
 typedef struct {
     channel_id_t channel;
     timestamp_t start;
@@ -113,5 +117,6 @@ typedef struct {
     channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
 } flash_entry_t;
 
+typedef uint8_t interwoven_bytes[48];
 
 #endif
