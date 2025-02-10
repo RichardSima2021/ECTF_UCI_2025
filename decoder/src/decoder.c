@@ -232,8 +232,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     interwoven_bytes *interwoven_decrypted;
 
 
-    // encrypted_packet = channel_id (4 bytes) + ciphertext
-    //      ciphertext  = 48 bytes interweaved
+    // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
+    //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
     // 1.
     memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
@@ -322,7 +322,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
 int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
-    char output_buf[128] = {0};
+    char output_buf[256] = {0};
     uint16_t frame_size;
     channel_id_t channel;
 
@@ -410,7 +410,7 @@ void crypto_example(void) {
     uint8_t hash_out[HASH_SIZE];
     uint8_t decrypted[BLOCK_SIZE];
 
-    char output_buf[128] = {0};
+    char output_buf[256] = {0};
 
     // Zero out the key
     bzero(key, BLOCK_SIZE);
@@ -440,8 +440,8 @@ void crypto_example(void) {
  **********************************************************/
 
 int main(void) {
-    char output_buf[128] = {0};
-    uint8_t uart_buf[100];
+    char output_buf[256] = {0};
+    uint8_t uart_buf[256];
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
