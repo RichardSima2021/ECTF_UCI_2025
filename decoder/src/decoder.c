@@ -45,27 +45,7 @@
 #include "simple_crypto.h"
 #endif  //CRYPTO_EXAMPLE
 
-/**********************************************************
- ******************* PRIMITIVE TYPES **********************
- **********************************************************/
 
-#define timestamp_t uint64_t
-#define channel_id_t uint32_t
-#define decoder_id_t uint32_t
-#define pkt_len_t uint16_t
-
-/**********************************************************
- *********************** CONSTANTS ************************
- **********************************************************/
-
-#define MAX_CHANNEL_COUNT 8
-#define EMERGENCY_CHANNEL 0
-#define FRAME_SIZE 64
-#define KEY_SIZE 16
-#define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
-#define C1_LENGTH 32
-// This is a canary value so we can confirm whether this decoder has booted before
-#define FLASH_FIRST_BOOT 0xDEADBEEF
 
 // These are some temperory keys for developing purposes. Need to be deleted later
 uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};

@@ -23,6 +23,7 @@
 #define MAX_CHANNEL_COUNT 8
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
+#define DEFAULT_CHANNEL_ID -1
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
@@ -68,14 +69,6 @@ typedef struct {
 
 typedef uint8_t interwoven_bytes[48];
 
-typedef struct{
-    channel_id_t channel;
-    timestamp_t timestamp;
-    uint8_t iv[KEY_SIZE];
-    uint8_t c1[C1_LENGTH];
-    uint8_t c2[FRAME_SIZE];
-} encrypted_frame_packet_t;
-
 typedef struct {
     decoder_id_t decoder_id;
     timestamp_t start_timestamp;
@@ -83,9 +76,6 @@ typedef struct {
     channel_id_t channel;
 } subscription_update_packet_t;
 
-typedef struct {
-    uint8_t encrypted_packet[52];
-}   encrypted_update_packet;
 
 typedef struct {
     channel_id_t channel;
