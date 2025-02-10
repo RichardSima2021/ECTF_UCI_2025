@@ -43,7 +43,7 @@ int uart_init(void){
  *  @return The character read.  Otherwise see MAX78000 Error Codes for
  *      a list of return codes.
 */
-int uart_readbyte_raw(void){
+int uart_simple_readbyte_raw(void){
     int data = MXC_UART_ReadCharacterRaw(MXC_UART_GET_UART(CONSOLE_UART));
     return data;
 }
@@ -53,7 +53,7 @@ int uart_readbyte_raw(void){
  *  @return The character read.  Otherwise see MAX78000 Error Codes for
  *      a list of return codes.
 */
-int uart_readbyte(void){
+int uart_simple_readbyte(void){
     int data = MXC_UART_ReadCharacter(MXC_UART_GET_UART(CONSOLE_UART));
     return data;
 }
@@ -62,7 +62,7 @@ int uart_readbyte(void){
  * 
  *  @param data The byte to be written.
 */
-void uart_writebyte(uint8_t data) {
+void uart_simple_writebyte(uint8_t data) {
     while (MXC_UART_GET_UART(CONSOLE_UART)->status & MXC_F_UART_STATUS_TX_FULL) {
     }
     MXC_UART_GET_UART(CONSOLE_UART)->fifo = data;
@@ -70,7 +70,7 @@ void uart_writebyte(uint8_t data) {
 
 /** @brief Flushes UART.
 */
-void uart_flush(void){
+void uart_simple_flush(void){
     MXC_UART_ClearRXFIFO(MXC_UART_GET_UART(CONSOLE_UART));
     MXC_UART_ClearTXFIFO(MXC_UART_GET_UART(CONSOLE_UART));
 }
