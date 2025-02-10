@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "mxc_device.h"
+#include "board.h"
+
 /**********************************************************
  ******************* PRIMITIVE TYPES **********************
  **********************************************************/
@@ -48,11 +51,20 @@
 #pragma pack(push, 1) // Tells the compiler not to pad the struct members
 // for more information on what struct padding does, see:
 // https://www.gnu.org/software/c-intro-and-ref/manual/html_node/Structure-Layout.html
-typedef struct {
+
+typedef struct{
     channel_id_t channel;
     timestamp_t timestamp;
-    uint8_t data[FRAME_SIZE];
-} frame_packet_t;
+    uint8_t iv[KEY_SIZE];
+    uint8_t c1[C1_LENGTH];
+    uint8_t c2[FRAME_SIZE];
+} encrypted_frame_packet_t;
+
+typedef struct {
+    char encrypted_packet[68];
+}   encrypted_update_packet;
+
+typedef uint8_t interwoven_bytes[48];
 
 typedef struct {
     decoder_id_t decoder_id;
@@ -93,6 +105,7 @@ typedef struct {
     channel_id_t id;
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;
+    timestamp_t current_timestamp;
 } channel_status_t;
 
 typedef struct {
