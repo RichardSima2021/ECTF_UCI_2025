@@ -27,8 +27,6 @@
 #define KEY_SIZE 16
 #define HASH_SIZE MD5_DIGEST_SIZE
 
-#define CHACHA_KEY_SIZE CHACHA_MAX_KEY_SZ
-#define CHACHA_IV_SIZE CHACHA_IV_BYTES
 
 
 /******************************** FUNCTION PROTOTYPES ********************************/
@@ -73,11 +71,6 @@ int decrypt_sym(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t *plaintex
  * @return 0 on success, non-zero for other error
  */
 int hash(void *data, size_t len, uint8_t *hash_out);
-
-
-int encrypt_chacha(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t *ciphertext);
-
-int decrypt_chacha(uint8_t *ciphertext, size_t len, uint8_t *key, uint8_t *plaintext);
 
 
 #endif // CRYPTO_EXAMPLE

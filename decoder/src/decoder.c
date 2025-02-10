@@ -160,7 +160,7 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
 int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
-    char output_buf[512] = {0};
+    char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
     channel_id_t channel;
 
@@ -211,7 +211,7 @@ void init() {
         print_debug("First boot.  Setting flash...\n");
 
         // Generate random flash key
-        generate_key(MXC_AES_128BITS, FLASH_SECRET);
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
         aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
@@ -292,7 +292,7 @@ void crypto_example(void) {
 
 
 void flash_test() {
-    char output_buf[128] = {0};
+    char output_buf[BUF_LEN] = {0};
     uint8_t data[16] = "Hello World!";
     uint8_t read_data[16] = {0};
 

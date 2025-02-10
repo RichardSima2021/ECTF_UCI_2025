@@ -75,6 +75,12 @@ void Random_Delay(){
 }
 
 
+//Reimplement MXC_TRNG_Random
+
+
+
+
+
 // void Rand_ASYC(uint8_t *data, uint32_t len){
 //     MXC_TRNG_Init();
 //     wait = 1;
