@@ -57,7 +57,7 @@ def gen_secrets(channels: list[int]) -> bytes:
             "msg_key": str(os.urandom(16)),   # 16 bytes hex 
             "data_key": str(os.urandom(16)),  # 16 bytes hex
             "subscription_key": str(os.urandom(16)),  # 16 bytes
-            "check_sum": str(os.urandom(24)),  # 24 bytes
+            "check_sum": str(os.urandom(20)),  # 20 bytes - first four bytes of sub_info (channel_id) will not be encrypted
         }
 
     # NOTE: if you choose to use JSON for your file type, you will not be able to
