@@ -8,8 +8,18 @@
 #ifndef ADVANCED_FLASH_H
 #define ADVANCED_FLASH_H
 
+#include "flc.h"
+#include "icc.h"
+#include "nvic_table.h"
+
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "advanced_aes.h"
 #include "types.h"
+
+//#include "simple_crypto.h"
 
 
 /**
@@ -32,7 +42,7 @@ void flash_init(void);
  * This function reads data from the specified flash page into the buffer 
  * and decrypt the buffer with the specified amount of bytes
 */
-void flash_read(uint32_t address, void* buffer, uint32_t size, char* key);//need key type
+void flash_read(uint32_t address, void* buffer, uint32_t size);//need key type
 
 
 /**
@@ -47,7 +57,7 @@ void flash_read(uint32_t address, void* buffer, uint32_t size, char* key);//need
  * way e.g. 1->0. To rewrite previously written memory see the 
  * flash_simple_erase_page documentation.
 */
-int flash_write(uint32_t address, void* buffer, uint32_t size, char* key);//need key type
+int flash_write(uint32_t address, void* buffer, uint32_t size);//need key type
 
 
 /**

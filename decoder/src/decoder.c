@@ -23,8 +23,10 @@
 #include "advanced_flash.h"
 #include "host_messaging.h"
 #include "types.h"
+#include "random.h"
+#include "advanced_uart.h"
+#include "mpu.h"
 
-#include "simple_uart.h"
 
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/sha256.h>
@@ -379,7 +381,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);
-    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
@@ -393,7 +395,9 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
 int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
-    char output_buf[128] = {0};
+    char output_buf[BUF_LEN] = {0};
+    uint16_t frame_size;
+
     channel_id_t channel;
     timestamp_t timestamp;
     timestamp_t timestamp_decrypted;
@@ -490,18 +494,26 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 */
 void init() {
     int ret;
+    NVIC_DisableIRQ(DMA0_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA1_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA2_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA3_IRQn);//disable DMA interrupt
 
     // Initialize the flash peripheral to enable access to persistent memory
     flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
         *  processes a subscription update, this data will be updated.
         */
         print_debug("First boot.  Setting flash...\n");
+
+        // Generate random flash key
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -518,9 +530,17 @@ void init() {
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
-    }
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
+
+        /** TODO: Call generate secrets to load tachi keys */
+        
+    } else {// If not first boot
+        aes_set_key();
+    }
+    
+
+    
     // Initialize the uart peripheral to enable serial I/O
     ret = uart_init();
     if (ret < 0) {
@@ -528,6 +548,9 @@ void init() {
         // if uart fails to initialize, do not continue to execute
         while (1);
     }
+
+    // Last thing we do is set up MPU to set up read/write accesses
+    mpu_setup();
 }
 
 // /* Code between this #ifdef and the subsequent #endif will
@@ -572,13 +595,30 @@ void crypto_example(void) {
 #endif  //CRYPTO_EXAMPLE
 
 
+void flash_test() {
+    char output_buf[BUF_LEN] = {0};
+    uint8_t data[16] = "Hello World!";
+    uint8_t read_data[16] = {0};
+
+    flash_erase_page(FLASH_STATUS_ADDR);
+    flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
+    flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
+
+    sprintf(output_buf, "Flash test: %s\n", read_data);
+    print_debug(output_buf);
+}
+
+
+
+
 /**********************************************************
  *********************** MAIN LOOP ************************
  **********************************************************/
 
 int main(void) {
-    char output_buf[128] = {0};
-    uint8_t uart_buf[128];
+    char output_buf[BUF_LEN] = {0};
+    uint8_t uart_buf[BUF_LEN]; // longest possible packet is 124 bytes
+
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
@@ -589,21 +629,26 @@ int main(void) {
 
     print_debug("Decoder Booted!\n");
 
-    #ifdef CRYPTO_EXAMPLE
+    // #ifdef CRYPTO_EXAMPLE
 
-    // print_debug("\n\nCrypto Example\n");
+    // // print_debug("\n\nCrypto Example\n");
 
-    // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
-    // uint8_t key[KEY_SIZE];
-    // uint8_t decrypted[BLOCK_SIZE];
-    // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-    // print_debug(decrypted);
+    // // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
+    // // uint8_t key[KEY_SIZE];
+    // // uint8_t decrypted[BLOCK_SIZE];
+    // // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // // print_debug(decrypted);
 
-    // print_debug("\n\n");
+    // // print_debug("\n\n");
 
-    crypto_example();
+    // crypto_example();
 
-    #endif
+    // #endif
+
+
+    flash_test();
+
+
 
     
     uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x62, 0x7C, 0xE5, 0x27, 0xA1, 0xC8, 0xEA, 0x9B, 0x05, 0x82, 0x9A, 0x2F, 0x19, 0x11, 0x6B, 0xF6, 0x3B, 0x02, 0x05, 0xFF, 0x0E, 0xD9, 0xEE, 0xD3, 0xC5, 0xF6, 0xCC, 0xBC, 0xEA, 0x1E, 0x99, 0x3F, 0x81, 0xD4, 0x7B, 0xDA, 0x66, 0xD7, 0x02, 0x6D, 0xE7, 0x55, 0x36, 0x1C, 0x7C, 0xD3, 0xDE, 0x34 };
@@ -620,7 +665,8 @@ int main(void) {
 
         if (result < 0) {
             STATUS_LED_ERROR();
-            print_error("Failed to receive cmd from host\n");
+            print_error("Failed to receive cmd from host. Flushing UART...\n");
+            uart_flush(); // Flush UART after recieving a bad packet
             continue;
         }
 

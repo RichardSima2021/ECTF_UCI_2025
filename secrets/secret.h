@@ -18,6 +18,8 @@
 #include "types.h"
 #include "advanced_flash.h"
 
+//"" 
+
 // Initializes all secret_t structs for all channels
 void init_secret()
 {
@@ -45,7 +47,7 @@ void init_secret()
         "e\xa6k\xea\x83\xb2\x8e\x0eu.\xa3\xffH\x12\x10:",
         ";\xe5F\x16\xda0i\x0b\xe1+\xab\x17c~\x8cP",
         "g\xe2}\xb8\xear\x14Q\x8e<<\xa3\xc0\x14\x85\xa5",
-        "\xa1\xf1r^\xd0\xe9<.\xd6"\xb7\x10\xbd\xa2l\x0b\xe9I\xfa;\xa5\x8c\xa7V"
+        "\xa1\xf1r^\xd0\xe9<.\xd6\"\xb7\x10\xbd\xa2l\x0b\xe9I\xfa;\xa5\x8c\xa7V"
     };
 
     // Takes a pointer to a secret_t structure and writes it to flash memory
@@ -62,7 +64,7 @@ void init_secret()
         "\xcd\x08\xc9\xb0\x83\xa6H\x9a.\xdd\x9a$I\xc9d\x11",
         "]\xcc,X6U\xedB{\x84\x81\xc0m\xc1\xc1i",
         "\xbeP\xf3\x98\x9ahPV\xc3\x95\xf1\xa2\xcc\xc9*\xfd",
-        ""2\x98\xdb\xf8\xea>L?t\x9a\xed\x1a\xa4\x8e\x1eeje*P\x9aXA"
+        "\"2\x98\xdb\xf8\xea>L?t\x9a\xed\x1a\xa4\x8e\x1eeje*P\x9aXA"
     };
 
     // Takes a pointer to a secret_t structure and writes it to flash memory
@@ -88,10 +90,6 @@ void init_secret()
     // Takes a pointer to the block of memory you want to set/clear,
     // value you want to set the memory to, and number of bytes to set to the value
     memset(&channel_4, 0, sizeof(secret_t)); // Erase SRAM
-
-
-    // Writes the flash key to memory
-    write_flash_secret("HVQ_"\xab\x0e\xd1\x92\xda=\x0fr\xb41\xfc");
 }
 
 #endif // SECRET_H
