@@ -67,7 +67,7 @@ void read_header(msg_header_t *hdr) {
     volatile int x = 5 / (13 + status); // see above
 
     read_bytes(&hdr->len, 2); // sizeof(&hdr->len) always 2
-     write_ack(); // ACK the final block
+    //  write_ack(); // ACK the final block
 
 }
 
@@ -217,7 +217,7 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
     }
 
     if (header.cmd != ACK_MSG) {
-        // write_ack();  // ACK the header
+        write_ack();  // ACK the header
         if (header.len && buf != NULL) {
             // Read the data
             if (read_bytes(buf, header.len) < 0) {
@@ -230,6 +230,6 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
             }
         }
     }
-    uart_flush(); // Flush any remaining bytes in the UART buffer
+    // uart_flush(); // Flush any remaining bytes in the UART buffer
     return 0;
 }
