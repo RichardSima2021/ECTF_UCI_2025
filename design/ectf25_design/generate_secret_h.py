@@ -39,8 +39,8 @@ def gen_sec(file_name):
 #define SECRET_H
 
 #include "string.h"
-#include "types.h"
-#include "advanced_flash.h"
+#include "../decoder/inc/types.h"
+#include "../decoder/inc/advanced_flash.h"
 
 // Initializes all secret_t structs for all channels
 void init_secret()
@@ -49,43 +49,39 @@ void init_secret()
 # ------------------------------------------------- End of generating initial information --------------------------------------------------- #
 
 # ------------------------------------------------- Start of generating structs ------------------------------------------------------------- #
-            
+
             for channel_idx in json_data.get('channels', []): # Extract the available channels in form of [0, 1, 2, 3, etc], formatted as a list
                 channel_data = json_data.get(f"channel_{channel_idx}")
                 if channel_data:
                     secret_h += f"""
     secret_t channel_{channel_idx} = {{
         {channel_data.get('channel_ID', 0)},
-        "{channel_data.get('mask_key', '').strip("b'")}",
-        "{channel_data.get('msg_key', '').strip("b'")}",
-        "{channel_data.get('data_key', '').strip("b'")}",
-        "{channel_data.get('subscription_key', '').strip("b'")}",
-        "{channel_data.get('check_sum', '').strip("b'")}"
+        "{channel_data.get('mask_key', '').strip("b'").replace('"', '\\"')}",
+        "{channel_data.get('msg_key', '').strip("b'").replace('"', '\\"')}",
+        "{channel_data.get('data_key', '').strip("b'").replace('"', '\\"')}",
+        "{channel_data.get('subscription_key', '').strip("b'").replace('"', '\\"')}",
+        "{channel_data.get('check_sum', '').strip("b'").replace('"', '\\"')}"
     }};
 
     // Takes a pointer to a secret_t structure and writes it to flash memory
-    write_secret(&channel_{channel_idx});
+    write_secrets(&channel_{channel_idx});
 
     // Takes a pointer to the block of memory you want to set/clear,
     // value you want to set the memory to, and number of bytes to set to the value
     memset(&channel_{channel_idx}, 0, sizeof(secret_t)); // Erase SRAM
-
 """
-            # Write the "flash_key" to memory after all structs are written
-            secret_h += f"""
-    // Writes the flash key to memory
-    write_flash_secret("{json_data.get('flash_key', '').strip("b'")}");
+        secret_h += f"""
 }}
-
+        
 #endif // SECRET_H
 """
 # ------------------------------------------------- End of generating structs --------------------------------------------------------------- #
 
-        with open("./secrets/secret.h", "w") as header_file:
+        with open("../../secrets/secret.h", "w") as header_file:
             header_file.write(secret_h)
     
-    except FileNotFoundError:
-        print(f"File '{file_name}' doesn't exist.")
+    except FileNotFoundError as Error: # This is catching ANY file not found error so it was catching the secret.h problem
+        print(Error)
 
 
 def main():
