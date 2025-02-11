@@ -14,9 +14,7 @@ def gen_sec(file_name):
     """
 
     try:
-        #print(file_name)
         with open(file_name) as json_file:
-            #print(file_name)
 
             # Reading the JSON content and parsing it into a dictionary
             content_string = json_file.read()
@@ -41,8 +39,8 @@ def gen_sec(file_name):
 #define SECRET_H
 
 #include "string.h"
-#include "types.h"
-#include "advanced_flash.h"
+#include "../decoder/inc/types.h"
+#include "../decoder/inc/advanced_flash.h"
 
 // Initializes all secret_t structs for all channels
 void init_secret()
@@ -66,7 +64,7 @@ void init_secret()
     }};
 
     // Takes a pointer to a secret_t structure and writes it to flash memory
-    write_secret(&channel_{channel_idx});
+    write_secrets(&channel_{channel_idx});
 
     // Takes a pointer to the block of memory you want to set/clear,
     // value you want to set the memory to, and number of bytes to set to the value
@@ -79,10 +77,8 @@ void init_secret()
 """
 # ------------------------------------------------- End of generating structs --------------------------------------------------------------- #
 
-        #print(file_name)
-        with open("secret.h", "w") as header_file:
+        with open("../../secrets/secret.h", "w") as header_file:
             header_file.write(secret_h)
-            #print(file_name)
     
     except FileNotFoundError as Error: # This is catching ANY file not found error so it was catching the secret.h problem
         print(Error)
@@ -101,7 +97,6 @@ def main():
     if len(sys.argv) != 2:
         print("Usage: python generate_secret_h.py <json_file_name>")
     else:
-        #print(sys.argv[1])
         gen_sec(sys.argv[1])
 
 if __name__ == "__main__":
