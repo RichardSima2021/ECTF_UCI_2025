@@ -64,6 +64,9 @@ int encrypt_sym(uint8_t *plaintext, size_t len, uint8_t *key, uint8_t * iv, uint
  *          BLOCK_SIZE (16 bytes)
  * @param key A pointer to a buffer of length KEY_SIZE (16 bytes) containing
  *          the key to use for decryption
+ * 
+ * @param iv the initialiation vector
+ * 
  * @param plaintext A pointer to a buffer of length len where the resulting
  *          plaintext will be written to
  *
