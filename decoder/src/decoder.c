@@ -303,7 +303,10 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     secret_t *channel_secrets;
     interwoven_bytes *interwoven_encrypted;
     interwoven_bytes *interwoven_decrypted;
+    // get iv from packet (last 16 bytes)
 
+    char iv[16];
+    memcpy(iv, &packet.encrypted_packet[52], 16);
 
     // encrypted_packet = channel_id (4 bytes) + ciphertext
     //      ciphertext  = 48 bytes interweaved
@@ -317,7 +320,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     read_secrets(channel_id, channel_secrets);
 
     // 3.
-    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, &interwoven_decrypted);
+    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
 
     // 4. & 5.
     subscription_update_packet_t *update;
@@ -613,12 +616,12 @@ void flash_test() {
     while (1) {
         c = uart_readbyte(&status);
         if (c == 'w') {
-            flash_erase_page(FLASH_SECRET - MXC_FLASH_PAGE_SIZE);
-            flash_write(FLASH_SECRET - MXC_FLASH_PAGE_SIZE, data, sizeof(data));
+            flash_erase_page(FLASH_KEY - MXC_FLASH_PAGE_SIZE);
+            flash_write(FLASH_KEY - MXC_FLASH_PAGE_SIZE, data, sizeof(data));
             sprintf(output_buf, "Wrote to flash\n", data);
             print_debug(output_buf);
         } else if (c == 'r') {
-            flash_read(FLASH_SECRET - MXC_FLASH_PAGE_SIZE, read_data, sizeof(read_data));
+            flash_read(FLASH_KEY - MXC_FLASH_PAGE_SIZE, read_data, sizeof(read_data));
             sprintf(output_buf, "Flash test: %s\n", read_data);
             print_debug(output_buf);
         }
