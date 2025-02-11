@@ -110,6 +110,9 @@ def main():
     logger.debug(f"Generated secrets: {secrets}")
 
     # Open the file, erroring if the file exists unless the --force arg is provided
+
+    # To put the secrets.json file in the secrets directory when generating the json file, prepend "../../secrets"
+    # the name of your json file. Example: python gen_secrets.py ../../secrets/secrets.json 1 2 3
     with open(args.secrets_file, "wb") as f:
         # Dump the secrets to the file
         f.write(secrets)
