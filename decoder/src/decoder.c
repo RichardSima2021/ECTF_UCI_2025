@@ -18,17 +18,26 @@
 #include "mxc_device.h"
 #include "status_led.h"
 #include "board.h"
+#include "advanced_flash.h"
 #include "mxc_delay.h"
 #include "advanced_flash.h"
 #include "host_messaging.h"
 #include "types.h"
+#include "random.h"
+#include "advanced_uart.h"
+#include "mpu.h"
 
-#include "simple_uart.h"
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
 
 
-// /* Code between this #ifdef and the subsequent #endif will
-// *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
-// *  the projectk.mk file. */
+/* Code between this #ifdef and the subsequent #endif will
+*  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
+*  the projectk.mk file. */
 #ifdef CRYPTO_EXAMPLE
 // /* The simple crypto example included with the reference design is intended
 // *  to be an example of how you *may* use cryptography in your design. You
@@ -37,6 +46,13 @@
 // *  library until they have a working design. */
 #include "simple_crypto.h"
 #endif  //CRYPTO_EXAMPLE
+
+
+
+// These are some temperory keys for developing purposes. Need to be deleted later
+uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
 
 
@@ -69,6 +85,63 @@ int is_subscribed(channel_id_t channel) {
         }
     }
     return 0;
+}
+
+
+
+int xorArrays(uint8_t *arr1, size_t arr1_len, uint8_t *arr2, size_t arr2_len, u_int8_t* result) {
+
+    // Check if input arrays are valid
+    if (arr1 == NULL || arr2 == NULL || result == NULL) {
+        fprintf(stderr, "Error: Invalid input arrays.\n");
+        return -1;
+    }
+
+    for (size_t i = 0; i < 16; i++) {
+        uint8_t byte1 = (i < arr1_len) ? arr1[i] : 0x00; // Use 0x00 if arr1 is shorter
+        uint8_t byte2 = (i < arr2_len) ? arr2[i] : 0x00; // Use 0x00 if arr2 is shorter
+        result[i] = byte1 ^ byte2;
+    }  
+
+    return 0;   
+}
+
+void compute_hash(const unsigned char *data, size_t length, unsigned char *hash) {
+    wc_Sha256 sha256;
+
+    if (wc_InitSha256(&sha256) != 0) {
+        fprintf(stderr, "Failed to initialize SHA-256 context!\n");
+        return; 
+    }
+
+    if (wc_Sha256Update(&sha256, data, length) != 0) {
+        fprintf(stderr, "Failed to update SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    unsigned char full_hash[WC_SHA256_DIGEST_SIZE];
+    if (wc_Sha256Final(&sha256, full_hash) != 0) {
+        fprintf(stderr, "Failed to finalize SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    memcpy(hash, full_hash, 16);
+
+    wc_Sha256Free(&sha256);
+}
+
+
+int get_frame_size(uint8_t * frame){
+    int size = 0;
+    for(int i = 0; i<FRAME_SIZE; i++){
+        if(!frame[i]){
+            break;
+        }
+        size++;
+    }
+    return size;
 }
 
 
@@ -230,7 +303,10 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     secret_t *channel_secrets;
     interwoven_bytes *interwoven_encrypted;
     interwoven_bytes *interwoven_decrypted;
+    // get iv from packet (last 16 bytes)
 
+    char iv[16];
+    memcpy(iv, &packet->encrypted_packet[52], 16);
 
     // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
     //      ciphertext  = 40 bytes interweaved + 8 bytes padding
@@ -241,10 +317,10 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
 
     // 2.
-    read_secrets(channel_id, channel_secrets);
+    // read_secrets(channel_id, channel_secrets);
 
     // 3.
-    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, &interwoven_decrypted);
+    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
 
     // 4. & 5.
     subscription_update_packet_t *update;
@@ -308,7 +384,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);
-    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
@@ -321,52 +397,128 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
  *
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
-int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
-    char output_buf[256] = {0};
+
+int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
+    char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
+
     channel_id_t channel;
+    timestamp_t timestamp;
+    timestamp_t timestamp_decrypted;
+    uint8_t ts_prime[C1_LENGTH];
+    uint8_t ts_decrypted[sizeof(timestamp_t)];
+    uint8_t nonce[KEY_SIZE];
+    uint8_t frame_data[FRAME_SIZE];
+    uint8_t c1_key[KEY_SIZE] = {0};
+    uint8_t c2_key[KEY_SIZE] = {0};
 
-    // Frame size is the size of the packet minus the size of non-frame elements
-    frame_size = pkt_len - (sizeof(new_frame->channel) + sizeof(new_frame->timestamp));
+
+    // Get the plain text info from the encrypted frame
     channel = new_frame->channel;
+    timestamp = new_frame->timestamp;
 
-    // The reference design doesn't use the timestamp, but you may want to in your design
-    // timestamp_t timestamp = new_frame->timestamp;
+    // secret_t *channel_secrets;
+    // read_secrets(channel, channel_secrets);
+
+    // mask_key = channel_secrets->mask_key;
+    // message_key = channel_secrets->msg_key;
+    // data_key = channel_secrets->data_key;
+
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    if (is_subscribed(channel)) {
-        print_debug("Subscription Valid\n");
-        /* The reference design doesn't need any extra work to decode, but your design likely will.
-        *  Do any extra decoding here before returning the result to the host. */
-        write_packet(DECODE_MSG, new_frame->data, frame_size);
-        return 0;
-    } else {
-        STATUS_LED_RED();
-        sprintf(
-            output_buf,
-            "Receiving unsubscribed channel data.  %u\n", channel);
-        print_error(output_buf);
+    // if (!is_subscribed(channel)) {
+    //     STATUS_LED_RED();
+    //     sprintf(
+    //         output_buf,
+    //         "Receiving unsubscribed channel data.  %u\n", channel);
+    //     print_error(output_buf);
+    //     return -1;
+    // }
+
+    print_debug("Subscription Valid\n");
+
+    // Todo: Decrypt c1 and c2, and validate timestamps
+
+    // Decrypt c1 first
+    
+    // Construct the key for c1
+    // XOR mask key with the timestamp
+    memcpy(c1_key, &timestamp, sizeof(timestamp));
+    if (xorArrays(c1_key, KEY_SIZE, mask_key, KEY_SIZE, c1_key) != 0) {
+        print_error("Failed to XOR c1_key and mask_key\n");
         return -1;
     }
+    // Hash the the XOR result from the previous step
+    compute_hash(c1_key, KEY_SIZE, c1_key);
+
+    // XOR the hash result with message key to get the decryption key for c1
+    if (xorArrays(c1_key, KEY_SIZE, message_key, KEY_SIZE, c1_key) != 0) {
+        print_error("Failed to XOR c1_key and message_key\n");
+        return -1;
+    }
+
+    // Decrypt c1 with the decryption key and get timestamp prime
+    decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
+
+
+    // Extract nonce from timestamp prime
+    memcpy(nonce, ts_prime, 8);
+    memcpy(nonce + 8, ts_prime + 16, 8);
+
+    
+    memcpy(ts_decrypted, ts_prime + 8, sizeof(timestamp_t));
+    timestamp_decrypted = *(timestamp_t*) ts_decrypted;
+
+
+    // Start to decrypt c2
+    // Construct the key for c2
+    // XOR data key with the nounce to get the decryption key for c2
+    if (xorArrays(nonce, 16, data_key, KEY_SIZE, c2_key) != 0) {
+        print_error("Failed to XOR nonce and data_key\n");
+        return -1;
+    }
+
+    // Calculate the length of c2
+    int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
+
+    // Decrypt c2 with the decryption key and get the frame data
+    memset(frame_data, 0, FRAME_SIZE);
+    decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
+
+
+    // TODO: Validation of Time Stamp Here
+
+    
+    write_packet(DECODE_MSG, frame_data, get_frame_size(frame_data));
+    return 0;
 }
 
 /** @brief Initializes peripherals for system boot.
 */
 void init() {
     int ret;
+    NVIC_DisableIRQ(DMA0_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA1_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA2_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA3_IRQn);//disable DMA interrupt
 
     // Initialize the flash peripheral to enable access to persistent memory
     flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
+    MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
+    //if (true) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
         *  processes a subscription update, this data will be updated.
         */
         print_debug("First boot.  Setting flash...\n");
+
+        // Generate random flash key
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -383,9 +535,17 @@ void init() {
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t), "");
-    }
+        MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
 
+
+        /** TODO: Call generate secrets to load tachi keys */
+        
+    } else {// If not first boot
+        aes_set_key();
+    }
+    
+
+    
     // Initialize the uart peripheral to enable serial I/O
     ret = uart_init();
     if (ret < 0) {
@@ -393,6 +553,9 @@ void init() {
         // if uart fails to initialize, do not continue to execute
         while (1);
     }
+
+    // Last thing we do is set up MPU to set up read/write accesses
+    mpu_setup();
 }
 
 // /* Code between this #ifdef and the subsequent #endif will
@@ -410,29 +573,73 @@ void crypto_example(void) {
     uint8_t hash_out[HASH_SIZE];
     uint8_t decrypted[BLOCK_SIZE];
 
-    char output_buf[256] = {0};
 
-    // Zero out the key
+    uint8_t iv[BLOCK_SIZE] = {1};
+
+    char output_buf[128] = {0};
+
+    // // Zero out the key
     bzero(key, BLOCK_SIZE);
 
-    // Encrypt example data and print out
-    encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
-    print_debug("Encrypted data: \n");
-    print_hex_debug(ciphertext, BLOCK_SIZE);
+    // // Encrypt example data and print out
+    // encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, , ciphertext);
+    // print_debug("Encrypted data: \n");
+    // print_hex_debug(ciphertext, BLOCK_SIZE);
 
-    // Hash example encryption results
-    hash(ciphertext, BLOCK_SIZE, hash_out);
+    // // Hash example encryption results
+    // hash(ciphertext, BLOCK_SIZE, hash_out);
 
-    // Output hash result
-    print_debug("Hash result: \n");
-    print_hex_debug(hash_out, HASH_SIZE);
+    // // Output hash result
+    // print_debug("Hash result: \n");
+    // print_hex_debug(hash_out, HASH_SIZE);
 
-    // Decrypt the encrypted message and print out
-    decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // // Decrypt the encrypted message and print out
+    decrypt_sym(ciphertext, BLOCK_SIZE, key, iv, decrypted);
     sprintf(output_buf, "Decrypted message: %s\n", decrypted);
     print_debug(output_buf);
 }
 #endif  //CRYPTO_EXAMPLE
+
+
+void flash_test() {
+    char output_buf[BUF_LEN] = {0};
+    uint8_t data[16] = "Hello World!";
+    uint8_t read_data[16] = {0};
+
+    //flash_erase_page(FLASH_STATUS_ADDR);
+    //flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
+    //flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
+
+    //sprintf(output_buf, "Flash test: %s\n", read_data);
+    //print_debug(output_buf);
+
+    char c;
+    int status;
+    while (1) {
+        c = uart_readbyte(&status);
+        if (c == 'w') {
+            flash_erase_page(FLASH_KEY - MXC_FLASH_PAGE_SIZE);
+            flash_write(FLASH_KEY - MXC_FLASH_PAGE_SIZE, data, sizeof(data));
+            sprintf(output_buf, "Wrote to flash\n", data);
+            print_debug(output_buf);
+        } else if (c == 'r') {
+            flash_read(FLASH_KEY - MXC_FLASH_PAGE_SIZE, read_data, sizeof(read_data));
+            sprintf(output_buf, "Flash test: %s\n", read_data);
+            print_debug(output_buf);
+        }
+        //uart_writebyte(c);
+    }
+}
+
+
+void uart_test() {
+    char c;
+    int status;
+    while (1) {
+        c = uart_readbyte(&status);
+        uart_writebyte(c);
+    }
+}
 
 
 /**********************************************************
@@ -440,8 +647,10 @@ void crypto_example(void) {
  **********************************************************/
 
 int main(void) {
-    char output_buf[256] = {0};
-    uint8_t uart_buf[256];
+
+    char output_buf[BUF_LEN] = {0};
+    uint8_t uart_buf[BUF_LEN]; // longest possible packet is 124 bytes
+
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
@@ -452,21 +661,32 @@ int main(void) {
 
     print_debug("Decoder Booted!\n");
 
-    #ifdef CRYPTO_EXAMPLE
+    // #ifdef CRYPTO_EXAMPLE
 
-    // print_debug("\n\nCrypto Example\n");
+    // // print_debug("\n\nCrypto Example\n");
 
-    // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
-    // uint8_t key[KEY_SIZE];
-    // uint8_t decrypted[BLOCK_SIZE];
-    // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-    // print_debug(decrypted);
+    // // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
+    // // uint8_t key[KEY_SIZE];
+    // // uint8_t decrypted[BLOCK_SIZE];
+    // // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // // print_debug(decrypted);
 
-    // print_debug("\n\n");
+    // // print_debug("\n\n");
 
-    crypto_example();
+    // crypto_example();
 
-    #endif
+    // #endif
+
+
+    // flash_test();
+    //uart_test();
+
+
+
+    
+    // uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x62, 0x7C, 0xE5, 0x27, 0xA1, 0xC8, 0xEA, 0x9B, 0x05, 0x82, 0x9A, 0x2F, 0x19, 0x11, 0x6B, 0xF6, 0x3B, 0x02, 0x05, 0xFF, 0x0E, 0xD9, 0xEE, 0xD3, 0xC5, 0xF6, 0xCC, 0xBC, 0xEA, 0x1E, 0x99, 0x3F, 0x81, 0xD4, 0x7B, 0xDA, 0x66, 0xD7, 0x02, 0x6D, 0xE7, 0x55, 0x36, 0x1C, 0x7C, 0xD3, 0xDE, 0x34 };
+
+    // decode(76, (encrypted_frame_packet_t *)data);
 
     // process commands forever
     while (1) {
@@ -478,7 +698,8 @@ int main(void) {
 
         if (result < 0) {
             STATUS_LED_ERROR();
-            print_error("Failed to receive cmd from host\n");
+            print_error("Failed to receive cmd from host. Flushing UART...\n");
+            uart_flush(); // Flush UART after recieving a bad packet
             continue;
         }
 
@@ -489,6 +710,14 @@ int main(void) {
         case LIST_MSG:
             STATUS_LED_CYAN();
 
+            #ifdef CRYPTO_EXAMPLE
+                // Run the crypto example
+                // TODO: Remove this from your design
+                crypto_example();
+            #endif // CRYPTO_EXAMPLE
+
+            // Print the boot flag
+            // TODO: Remove this from your design
             // #ifdef CRYPTO_EXAMPLE
             //     // Run the crypto example
             //     // TODO: Remove this from your design
@@ -500,7 +729,7 @@ int main(void) {
         // Handle decode command
         case DECODE_MSG:
             STATUS_LED_PURPLE();
-            decode(pkt_len, (frame_packet_t *)uart_buf);
+            decode(pkt_len, (encrypted_frame_packet_t *)uart_buf);
             break;
 
         // Handle subscribe command

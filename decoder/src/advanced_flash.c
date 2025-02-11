@@ -9,6 +9,7 @@
 
 
 
+
 /**
  * @brief ISR for the Flash Controller
  * 
@@ -79,11 +80,17 @@ int flash_erase_page(uint32_t address){
  * This function reads data from the specified flash page into the buffer 
  * with the specified amount of bytes and decrypt the buffer with a built-in key
 */
-void flash_read(uint32_t address, void *buffer, uint32_t len, char *key) {
-    MXC_FLC_Read(address, (uint32_t*)buffer, len);
+void flash_read(uint32_t address, void *buffer, uint32_t len) {
+    uint32_t ciphertext[len];
+
+    MXC_FLC_Read(address, ciphertext, len);
+    
     // Decrypt after read:
-    // decrypt(buffer, key, len);
+    decrypt(len, ciphertext, buffer);
+
+    // memset(ciphertext, 0, sizeof(ciphertext));
 }
+
 /**
  * @brief Flash Advanced Write
  * @param address: uint32_t, address of flash page to write
@@ -97,15 +104,20 @@ void flash_read(uint32_t address, void *buffer, uint32_t len, char *key) {
  * way e.g. 1->0. To rewrite previously written memory see the 
  * flash_simple_erase_page documentation. 
 */
-int flash_write(uint32_t address, void *buffer, uint32_t len, char *key) {
+int flash_write(uint32_t address, void* buffer, uint32_t len) {
     // Encrypt before write
-    // encrypt(buffer, key, len);
-
     // Check the bounds of the address to make sure write is to flash
     if (address < MXC_FLASH_MEM_BASE || address >= (MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE)) 
         return -1;
     
-    int error = MXC_FLC_Write(address, len, buffer);
+    uint32_t ciphertext[len];
+
+    encrypt(len, buffer, ciphertext);
+    
+    int error = MXC_FLC_Write(address, len, ciphertext);
+
+    memset(buffer, 0, len);
+
     return error;
 }
 
