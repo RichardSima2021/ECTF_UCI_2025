@@ -20,6 +20,7 @@
  *********************** CONSTANTS ************************
  **********************************************************/
 
+#define BUF_LEN 512
 #define MAX_CHANNEL_COUNT 8
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
@@ -33,7 +34,7 @@
 
 
 
-#define SECRET_BASE_ADDRESS MXC_FLASH_MEM_BASE+MXC_FLASH_MEM_SIZE-3*MXC_FLASH_PAGE_SIZE
+
 
 
 
@@ -46,6 +47,11 @@
 // Calculate the flash address where we will store channel info as the 2nd to last page available
 #define FLASH_STATUS_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (2 * MXC_FLASH_PAGE_SIZE))
 
+//TAICHI Key
+#define SECRET_BASE_ADDRESS ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (3 * MXC_FLASH_PAGE_SIZE))
+
+//The flash read write key
+#define FLASH_KEY ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (4 * MXC_FLASH_PAGE_SIZE)) // we put it on 4th page, in what is no access region
 
 /**********************************************************
  *********** COMMUNICATION PACKET DEFINITIONS *************
