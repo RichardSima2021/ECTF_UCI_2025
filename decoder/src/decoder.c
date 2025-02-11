@@ -306,7 +306,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     // get iv from packet (last 16 bytes)
 
     char iv[16];
-    memcpy(iv, &packet.encrypted_packet[52], 16);
+    memcpy(iv, &packet->encrypted_packet[52], 16);
 
     // encrypted_packet = channel_id (4 bytes) + ciphertext
     //      ciphertext  = 48 bytes interweaved
