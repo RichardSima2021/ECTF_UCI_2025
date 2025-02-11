@@ -54,7 +54,8 @@ void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
     Rand_String(keyBuffer, keyLenChars);
     // write key to flash (write it in overlay region)
 
-    MXC_FLC_Write(address, keyBuffer, keyLenChars * sizeof(uint32_t)); // flash_write_raw
+    flash_erase_page(address);
+    MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer); // flash_write_raw
     memset(keyBuffer, 0, keyLenChars * sizeof(uint32_t));
 
     // MXC_FLC_Write(address, keyLenChars * sizeof(uint32_t), keyBuffer);

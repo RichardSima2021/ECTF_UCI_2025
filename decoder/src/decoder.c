@@ -503,8 +503,9 @@ void init() {
     flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
+    //if (true) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
         *  processes a subscription update, this data will be updated.
@@ -530,7 +531,7 @@ void init() {
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+        MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
 
 
         /** TODO: Call generate secrets to load tachi keys */
@@ -600,15 +601,40 @@ void flash_test() {
     uint8_t data[16] = "Hello World!";
     uint8_t read_data[16] = {0};
 
-    flash_erase_page(FLASH_STATUS_ADDR);
-    flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
-    flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
+    //flash_erase_page(FLASH_STATUS_ADDR);
+    //flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
+    //flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
 
-    sprintf(output_buf, "Flash test: %s\n", read_data);
-    print_debug(output_buf);
+    //sprintf(output_buf, "Flash test: %s\n", read_data);
+    //print_debug(output_buf);
+
+    char c;
+    int status;
+    while (1) {
+        c = uart_readbyte(&status);
+        if (c == 'w') {
+            flash_erase_page(FLASH_SECRET - MXC_FLASH_PAGE_SIZE);
+            flash_write(FLASH_SECRET - MXC_FLASH_PAGE_SIZE, data, sizeof(data));
+            sprintf(output_buf, "Wrote to flash\n", data);
+            print_debug(output_buf);
+        } else if (c == 'r') {
+            flash_read(FLASH_SECRET - MXC_FLASH_PAGE_SIZE, read_data, sizeof(read_data));
+            sprintf(output_buf, "Flash test: %s\n", read_data);
+            print_debug(output_buf);
+        }
+        //uart_writebyte(c);
+    }
 }
 
 
+void uart_test() {
+    char c;
+    int status;
+    while (1) {
+        c = uart_readbyte(&status);
+        uart_writebyte(c);
+    }
+}
 
 
 /**********************************************************
@@ -647,6 +673,7 @@ int main(void) {
 
 
     flash_test();
+    //uart_test();
 
 
 
