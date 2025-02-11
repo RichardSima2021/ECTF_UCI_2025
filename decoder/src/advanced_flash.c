@@ -1,5 +1,14 @@
 #include "advanced_flash.h"
+#include "flc.h"
+#include "icc.h"
+#include "nvic_table.h"
+#include "types.h"
+#include <stdio.h>
 #include <string.h>
+
+
+
+
 
 /**
  * @brief ISR for the Flash Controller
@@ -171,3 +180,14 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
 //     int error = MXC_FLC_Read(address, secret, 16);
 //     return error;
 // }
+
+int hard_read_secrets(int channel_id, secret_t* secret_buffer) {
+    secret_buffer->channel_id = 1;
+    memset(secret_buffer->mask_key, '1', 16);
+    memset(secret_buffer->msg_key, '1', 16);
+    memset(secret_buffer->data_key, '1', 16);
+    memset(secret_buffer->subscription_key, '1', 16);
+    memset(secret_buffer->check_sum, '1', 24);
+    
+    return 1;
+}

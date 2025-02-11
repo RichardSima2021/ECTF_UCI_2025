@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "host_messaging.h"
+#include <stdbool.h>
 #include "types.h"
 
 

@@ -232,9 +232,9 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
     */
 
     // Pull individual values from temp_subscription_arr
-    subscription_info->decoder_id = (temp_subscription_arr[0] - '0') * 1000 + (temp_subscription_arr[1] - '0') * 100 + (temp_subscription_arr[2] - '0') * 10 + (temp_subscription_arr[3] - '0');
-    subscription_info->start_timestamp = (temp_subscription_arr[4] - '0') * 10000000 + (temp_subscription_arr[5] - '0') * 1000000 + (temp_subscription_arr[6] - '0') * 100000 + (temp_subscription_arr[7] - '0') * 10000 + (temp_subscription_arr[8] - '0') * 1000 + (temp_subscription_arr[9] - '0') * 100 + (temp_subscription_arr[10] - '0') * 10 + (temp_subscription_arr[11] - '0');
-    subscription_info->end_timestamp = (temp_subscription_arr[12] - '0') * 10000000 + (temp_subscription_arr[13] - '0') * 1000000 + (temp_subscription_arr[14] - '0') * 100000 + (temp_subscription_arr[15] - '0') * 10000 + (temp_subscription_arr[16] - '0') * 1000 + (temp_subscription_arr[17] - '0') * 100 + (temp_subscription_arr[18] - '0') * 10 + (temp_subscription_arr[19] - '0');
+    subscription_info->decoder_id = (temp_subscription_arr[3] << 24) + (temp_subscription_arr[2] << 16) + (temp_subscription_arr[1] << 8) + (temp_subscription_arr[0]);
+    subscription_info->start_timestamp = (temp_subscription_arr[4]) + (temp_subscription_arr[5]) + (temp_subscription_arr[6]) + (temp_subscription_arr[7]) + (temp_subscription_arr[8]) + (temp_subscription_arr[9]) + (temp_subscription_arr[10]) + (temp_subscription_arr[11]);
+    subscription_info->end_timestamp = (temp_subscription_arr[12]) + (temp_subscription_arr[13]) + (temp_subscription_arr[14]) + (temp_subscription_arr[15]) + (temp_subscription_arr[16]) + (temp_subscription_arr[17]) + (temp_subscription_arr[18]) + (temp_subscription_arr[19]);
     
     return 0;  // Success
 }
@@ -308,8 +308,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     char iv[16];
     memcpy(iv, &packet->encrypted_packet[52], 16);
 
-    // encrypted_packet = channel_id (4 bytes) + ciphertext
-    //      ciphertext  = 48 bytes interweaved
+    // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
+    //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
     // 1.
     memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
@@ -397,6 +397,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
  *
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
+
 int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
@@ -572,6 +573,7 @@ void crypto_example(void) {
     uint8_t hash_out[HASH_SIZE];
     uint8_t decrypted[BLOCK_SIZE];
 
+
     uint8_t iv[BLOCK_SIZE] = {1};
 
     char output_buf[128] = {0};
@@ -645,6 +647,7 @@ void uart_test() {
  **********************************************************/
 
 int main(void) {
+
     char output_buf[BUF_LEN] = {0};
     uint8_t uart_buf[BUF_LEN]; // longest possible packet is 124 bytes
 
