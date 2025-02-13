@@ -48,17 +48,20 @@ def gen_secrets(channels: list[int]) -> bytes:
         # as the first element
         "channels": [0] + channels,
     }
-    secrets['flash_key']=str(os.urandom(16))
+    secrets['flash_key']=os.urandom(16).hex()
+
+    print('Flash key: ', secrets['flash_key'])
     
     for channel in [0] + channels:
         secrets[f"channel_{channel}"] = {
             "channel_ID": str(channel),  # Channel ID as an integer
-            "mask_key": str(os.urandom(16)),  # 16 bytes hex
-            "msg_key": str(os.urandom(16)),   # 16 bytes hex 
-            "data_key": str(os.urandom(16)),  # 16 bytes hex
-            "subscription_key": str(os.urandom(16)),  # 16 bytes
-            "check_sum": str(os.urandom(20)),  # 20 bytes - first four bytes of sub_info (channel_id) will not be encrypted
+            "mask_key": os.urandom(16).hex(),  # 16 bytes hex
+            "msg_key": os.urandom(16).hex(),   # 16 bytes hex
+            "data_key": os.urandom(16).hex(),  # 16 bytes hex
+            "subscription_key": os.urandom(16).hex(),  # 16 bytes
+            "check_sum": os.urandom(20).hex(),  # 20 bytes - first four bytes of sub_info (channel_id) will not be encrypted
         }
+
 
     # NOTE: if you choose to use JSON for your file type, you will not be able to
     # store binary data, and must either use a different file type or encode the
