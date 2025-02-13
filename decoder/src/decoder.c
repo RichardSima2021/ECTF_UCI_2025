@@ -27,6 +27,8 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
+#include "secret.h"
+
 
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/sha256.h>
@@ -50,9 +52,9 @@
 
 
 // These are some temperory keys for developing purposes. Need to be deleted later
-uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+// uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+// uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+// uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
 uint8_t checksum[] = {
     0xA1, 0xF1, 0x72, 0x5E, 0xD0, 0xE9, 0x3C, 0x2E,
@@ -426,12 +428,18 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     channel = new_frame->channel;
     timestamp = new_frame->timestamp;
 
-    // secret_t *channel_secrets;
-    // read_secrets(channel, channel_secrets);
+    secret_t *channel_secrets;
+    read_secrets(channel, channel_secrets);
 
-    // mask_key = channel_secrets->mask_key;
-    // message_key = channel_secrets->msg_key;
-    // data_key = channel_secrets->data_key;
+    // Probably should not use memcpy here
+    // alternative is:
+    // uint8_t* mask_key = channel_secrets->mask_key;
+    uint8_t mask_key[16];
+    memcpy(mask_key, channel_secrets->mask_key, sizeof(mask_key));
+    uint8_t message_key[16];
+    memcpy(message_key, channel_secrets->msg_key, sizeof(message_key));
+    uint8_t data_key[16];
+    memcpy(data_key, channel_secrets->data_key, sizeof(data_key));
 
 
     // Check that we are subscribed to the channel...
@@ -548,6 +556,8 @@ void init() {
 
 
         /** TODO: Call generate secrets to load tachi keys */
+
+        init_secret();
         
     } else {// If not first boot
         aes_set_key();

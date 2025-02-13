@@ -209,28 +209,28 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
         *len = header.len;
     }
 
-    if (cmd == DECODE_MSG && len > 124) {
+    if (cmd == DECODE_MSG && *len > 124) {
         return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
-    } else if (cmd == SUBSCRIBE_MSG && len > 68) {
+    } else if (cmd == SUBSCRIBE_MSG && *len > 68) {
         return -1; // Reject packets larger than 68 bytes, invalid lengths are not handled
-    } else if (cmd == LIST_MSG && len != 0) {
+    } else if (cmd == LIST_MSG && *len != 0) {
         return -1; // Reject packets larger than 0 bytes, invalid lengths are not handled
     }
 
     if (header.cmd != ACK_MSG) {
         write_ack();  // ACK the header
-        if (header.len && buf != NULL) {
+        if (*len && buf != NULL) {
             // Read the data
             if (read_bytes(buf, header.len) < 0) {
                 return -1;
             }
         }
-        if (header.len) {
+        if (*len) {
             if (write_ack() < 0) { // ACK the final block (not handled by read_bytes)
                 return -1;
             }
         }
     }
-    uart_flush_rx(); // Flush any remaining bytes in the UART buffer
+    uart_flush_rx(); // Flush any remaining bytes in the UART recieve buffer
     return 0;
 }
