@@ -55,3 +55,7 @@ void uart_flush(void){
     MXC_UART_ClearRXFIFO(MAX_UARTn);
     MXC_UART_ClearTXFIFO(MAX_UARTn);
 }
+
+void uart_flush_rx(void){
+    MXC_UART_ClearRXFIFO(MAX_UARTn);
+}

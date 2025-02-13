@@ -51,12 +51,12 @@ def gen_subscription(
     #sub_info = struct.pack("<IQQI", device_id, start, end, channel)
     sub_info = struct.pack("<IQQ", device_id, start, end)
     #check_sum = secrets[f'channel_{channel}']['check_sum']
-    check_sum = get_channel_key(channel, secrets)['check_sum']
+    check_sum = ast.literal_eval(get_channel_key(channel, secrets)['check_sum'])
     #check_sum_channel = bytes(check_sum, 'utf-8')
-    check_sum_channel = ast.literal_eval(check_sum)[0:20]
+    #check_sum_channel = ast.literal_eval(check_sum)
 
     #print(check_sum_channel)
-    print("sub and check: ", sub_info, check_sum_channel)
+    print("sub and check: ", sub_info, check_sum)
 
     interwoven_bytestring = interweave(sub_info, check_sum_channel)
     
@@ -87,8 +87,7 @@ def pad(data, block_size):
 
 def interweave(sub_info, check_sum_channel):
     if len(sub_info) != len(check_sum_channel) or len(sub_info) != 20:
-
-        print(len(sub_info), len(check_sum_channel))
+        #print(len(sub_info), len(check_sum_channel))
         raise ValueError("invalid lengths")
     
     ret = bytearray()
@@ -112,10 +111,10 @@ def encrypt(interwoven_bytestring, secrets, channel):
 
     data = pad(interwoven_bytestring, 16)
     #print("padded length: ", len(data))
-    channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
+    subscription_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
 
-    aes = AES.new(channel_key, AES.MODE_CBC, iv)
+    aes = AES.new(subscription_key, AES.MODE_CBC, iv)
     cipher = aes.encrypt(data)
 
     return cipher + iv

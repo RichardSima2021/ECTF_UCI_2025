@@ -54,4 +54,8 @@ void uart_writebyte(uint8_t data);
 */
 void uart_flush(void);
 
+/** @brief Flushes UART Read Buffer
+ */
+void uart_flush_rx(void);
+
 #endif // __ADVANCED_UART__
