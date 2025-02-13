@@ -1,6 +1,15 @@
 import sys
 import json
 
+
+def hex_to_c_array(hex_string):
+
+    bytes_list = [f"0x{hex_string[i:i + 2]}" for i in range(0, len(hex_string), 2)]
+
+    formatted_array = "{ " + ", ".join(bytes_list) + " }"
+
+    return formatted_array
+
 def gen_sec(file_name):
 
     """
@@ -53,14 +62,15 @@ void init_secret()
             for channel_idx in json_data.get('channels', []): # Extract the available channels in form of [0, 1, 2, 3, etc], formatted as a list
                 channel_data = json_data.get(f"channel_{channel_idx}")
                 if channel_data:
+                    double_backslash = '\\"'
                     secret_h += f"""
     secret_t channel_{channel_idx} = {{
         {channel_data.get('channel_ID', 0)},
-        "{channel_data.get('mask_key', '').strip("b'").replace('"', '\\"')}",
-        "{channel_data.get('msg_key', '').strip("b'").replace('"', '\\"')}",
-        "{channel_data.get('data_key', '').strip("b'").replace('"', '\\"')}",
-        "{channel_data.get('subscription_key', '').strip("b'").replace('"', '\\"')}",
-        "{channel_data.get('check_sum', '').strip("b'").replace('"', '\\"')}"
+        "{hex_to_c_array(channel_data.get('mask_key', ''))}",
+        "{hex_to_c_array(channel_data.get('msg_key', ''))}",
+        "{hex_to_c_array(channel_data.get('data_key', ''))}",
+        "{hex_to_c_array(channel_data.get('subscription_key', ''))}",
+        "{hex_to_c_array(channel_data.get('check_sum', ''))}"
     }};
 
     // Takes a pointer to a secret_t structure and writes it to flash memory
