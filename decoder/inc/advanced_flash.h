@@ -81,13 +81,13 @@ int flash_erase_page(uint32_t address);
  * @param buf: secret_t*, pointer to buffer for data to be read into
  * @return int: return negative if failure, zero if success
  */
-int read_secrets(int channel_id, secret_t* buf);
+void read_secrets(int channel_id, secret_t* secret_buffer);
 
 /**
  * @brief Flash Write Secrets
  * @param s: secret_t*, pointer to secret to write
  */
-void write_secrets(secret_t* s);
+int write_secrets(secret_t* s);
 
 
 #endif
