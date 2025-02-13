@@ -231,6 +231,6 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
             }
         }
     }
-    // uart_flush(); // Flush any remaining bytes in the UART buffer
+    uart_flush_rx(); // Flush any remaining bytes in the UART buffer
     return 0;
 }
