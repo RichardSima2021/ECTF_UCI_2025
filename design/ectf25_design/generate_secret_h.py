@@ -66,11 +66,11 @@ void init_secret()
                     secret_h += f"""
     secret_t channel_{channel_idx} = {{
         {channel_data.get('channel_ID', 0)},
-        "{hex_to_c_array(channel_data.get('mask_key', ''))}",
-        "{hex_to_c_array(channel_data.get('msg_key', ''))}",
-        "{hex_to_c_array(channel_data.get('data_key', ''))}",
-        "{hex_to_c_array(channel_data.get('subscription_key', ''))}",
-        "{hex_to_c_array(channel_data.get('check_sum', ''))}"
+        {hex_to_c_array(channel_data.get('mask_key', ''))},
+        {hex_to_c_array(channel_data.get('msg_key', ''))},
+        {hex_to_c_array(channel_data.get('data_key', ''))},
+        {hex_to_c_array(channel_data.get('subscription_key', ''))},
+        {hex_to_c_array(channel_data.get('check_sum', ''))}
     }};
 
     // Takes a pointer to a secret_t structure and writes it to flash memory
