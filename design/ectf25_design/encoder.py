@@ -73,7 +73,11 @@ class Encoder:
     def pad(self, data, block_size):
         """Pad the data to the block size"""
         assert type(data) == bytes, "Data must be bytes"
-        padding_length = block_size - (len(data) % block_size)
+        extra = len(data) % block_size
+        if extra == 0:
+            padding_length = 0
+        else:
+            padding_length = block_size - extra
         return data + b'\x00' * padding_length
 
 
@@ -133,7 +137,9 @@ class Encoder:
         c2_data = self.pad(frame, 16)
         c2 = self.sym_encrypt(c2_key, iv, c2_data)
 
-        return struct.pack("<IQ", channel, timestamp) + iv + c1 + c2
+        frame_size = len(frame)
+
+        return struct.pack("<IQI", channel, timestamp, frame_size) + iv + c1 + c2
     
 
 

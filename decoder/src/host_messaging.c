@@ -209,7 +209,7 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
         *len = header.len;
     }
 
-    if (cmd == DECODE_MSG && *len > 124) {
+    if (cmd == DECODE_MSG && *len > 128) {
         return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
     } else if (cmd == SUBSCRIBE_MSG && *len > 68) {
         return -1; // Reject packets larger than 68 bytes, invalid lengths are not handled

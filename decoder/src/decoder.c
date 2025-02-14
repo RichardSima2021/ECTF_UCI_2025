@@ -52,9 +52,9 @@
 
 
 // These are some temperory keys for developing purposes. Need to be deleted later
-// uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-// uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-// uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
 uint8_t checksum[] = {
     0xA1, 0xF1, 0x72, 0x5E, 0xD0, 0xE9, 0x3C, 0x2E,
@@ -141,18 +141,6 @@ void compute_hash(const unsigned char *data, size_t length, unsigned char *hash)
     memcpy(hash, full_hash, 16);
 
     wc_Sha256Free(&sha256);
-}
-
-
-int get_frame_size(uint8_t * frame){
-    int size = 0;
-    for(int i = 0; i<FRAME_SIZE; i++){
-        if(!frame[i]){
-            break;
-        }
-        size++;
-    }
-    return size;
 }
 
 
@@ -434,12 +422,12 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Probably should not use memcpy here
     // alternative is:
     // uint8_t* mask_key = channel_secrets->mask_key;
-    uint8_t mask_key[16];
-    memcpy(mask_key, channel_secrets->mask_key, sizeof(mask_key));
-    uint8_t message_key[16];
-    memcpy(message_key, channel_secrets->msg_key, sizeof(message_key));
-    uint8_t data_key[16];
-    memcpy(data_key, channel_secrets->data_key, sizeof(data_key));
+    // uint8_t mask_key[16];
+    // memcpy(mask_key, channel_secrets->mask_key, sizeof(mask_key));
+    // uint8_t message_key[16];
+    // memcpy(message_key, channel_secrets->msg_key, sizeof(message_key));
+    // uint8_t data_key[16];
+    // memcpy(data_key, channel_secrets->data_key, sizeof(data_key));
 
 
     // Check that we are subscribed to the channel...
@@ -497,7 +485,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     }
 
     // Calculate the length of c2
-    int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - KEY_SIZE - C1_LENGTH;
+    int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - sizeof(frame_length_t) - KEY_SIZE - C1_LENGTH;
 
     // Decrypt c2 with the decryption key and get the frame data
     memset(frame_data, 0, FRAME_SIZE);
@@ -507,7 +495,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // TODO: Validation of Time Stamp Here
 
     
-    write_packet(DECODE_MSG, frame_data, get_frame_size(frame_data));
+    write_packet(DECODE_MSG, frame_data, new_frame->frame_length);
     return 0;
 }
 
@@ -701,11 +689,6 @@ int main(void) {
     //uart_test();
 
 
-
-    
-    // uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x62, 0x7C, 0xE5, 0x27, 0xA1, 0xC8, 0xEA, 0x9B, 0x05, 0x82, 0x9A, 0x2F, 0x19, 0x11, 0x6B, 0xF6, 0x3B, 0x02, 0x05, 0xFF, 0x0E, 0xD9, 0xEE, 0xD3, 0xC5, 0xF6, 0xCC, 0xBC, 0xEA, 0x1E, 0x99, 0x3F, 0x81, 0xD4, 0x7B, 0xDA, 0x66, 0xD7, 0x02, 0x6D, 0xE7, 0x55, 0x36, 0x1C, 0x7C, 0xD3, 0xDE, 0x34 };
-
-    // decode(76, (encrypted_frame_packet_t *)data);
 
     // process commands forever
     while (1) {

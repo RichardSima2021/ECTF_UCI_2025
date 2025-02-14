@@ -15,6 +15,7 @@
 #define channel_id_t uint32_t
 #define decoder_id_t uint32_t
 #define pkt_len_t uint16_t
+#define frame_length_t uint32_t
 
 /**********************************************************
  *********************** CONSTANTS ************************
@@ -64,6 +65,7 @@
 typedef struct{
     channel_id_t channel;
     timestamp_t timestamp;
+    frame_length_t frame_length;
     uint8_t iv[KEY_SIZE];
     uint8_t c1[C1_LENGTH];
     uint8_t c2[FRAME_SIZE];
