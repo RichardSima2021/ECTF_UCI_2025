@@ -54,12 +54,14 @@
 #define MPU_DEFS_SHARED_DEVICE (MPU_RASR_B_Msk)
 #define MPU_DEFS_STRONGLY_ORDERED_DEVICE (0x0)
 
-
 /**
  * @brief Setup the MPU
  * 
  * @return return a status message 
  */
 uint8_t mpu_setup(void);
+
+void request_privilege();
+void drop_privilege();
 
 #endif // MPU_H

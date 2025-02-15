@@ -500,6 +500,7 @@ void init() {
     NVIC_DisableIRQ(DMA3_IRQn);//disable DMA interrupt
 
     // Initialize the flash peripheral to enable access to persistent memory
+    __enable_irq();
     flash_init();
 
     // Read starting flash values into our flash status struct

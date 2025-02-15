@@ -1,6 +1,19 @@
 #include "mpu.h"
 #include <stdint.h>
 
+void SVC_Handler(void) {
+    __set_CONTROL(__get_CONTROL() & ~0x1);
+    __ISB();
+}
+
+void request_privilege() {
+    __asm("svc #0");
+}
+
+void drop_privilege() {
+    __set_CONTROL(__get_CONTROL() | 0x1);
+    __ISB();
+}
 
 /**
 * @brief    Setup the MPU
