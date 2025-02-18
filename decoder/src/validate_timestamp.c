@@ -1,5 +1,5 @@
-#include "../inc/types.h"
-#include "../inc/advanced_flash.h"
+#include "types.h"
+#include "advanced_flash.h"
 //#include "decoder.c"
 #include <stdint.h>
 #include <string.h>
@@ -39,21 +39,8 @@ int extract_channel_idx(int channel_id){
 
 int check_increasing(int channel_id, timestamp_t extracted_timestamp){
 
-    //1. extract the channel_status strcuture from the flash
-    char flash_secret[16]; memset(flash_secret,0,16);
-    int err=read_flash_secret(flash_secret);
-
-    if(err==0){
-        return 0; //error
-    }
-
     //extarct the subscription information
-    err=flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-
-    if(err==0){
-        return 0; //error
-    }
-
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     //2. check if the timestamp is strictly greater than that
     int idx=extract_channel_idx(channel_id);
@@ -61,7 +48,7 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp){
         return 0;
     }
 
-    if(extracted_timestamp > decoder_status.subscribed_channels[idx].current_ts){
+    if(extracted_timestamp > decoder_status.subscribed_channels[idx].current_timestamp){
         return 1;
     }
     return 0;
@@ -108,14 +95,6 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
     }
     
     decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
-
-    //write back this decoder_status to the flash
-    char flash_secret[16]; memset(flash_secret,0,16);
-    int err=read_flash_secret(flash_secret);
-    if(err==-1){
-        return err;
-    }
     flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    memset(flash_secret,0,16);
-    return err;
+    return 0;   // Idk if this is a flag used later
 }
