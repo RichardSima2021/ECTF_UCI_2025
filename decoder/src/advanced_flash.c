@@ -88,7 +88,7 @@ void flash_read(uint32_t address, void *buffer, uint32_t len) {
     // Decrypt after read:
     decrypt(len, ciphertext, buffer);
 
-    // memset(ciphertext, 0, sizeof(ciphertext));
+    memset(ciphertext, 0, sizeof(ciphertext));
 }
 
 /**
@@ -143,7 +143,7 @@ int write_secrets(secret_t* s) {
     //then calculate the memory offset from this channel id
     uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
 
-   int error = flash_write(memory_addr,s,sizeof(secret_t));
+    int error = flash_write(memory_addr,s,sizeof(secret_t));
 
     return error;
 }

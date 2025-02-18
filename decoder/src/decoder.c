@@ -424,7 +424,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
 
-    channel_id_t channel;
     timestamp_t timestamp;
     timestamp_t timestamp_decrypted;
     uint8_t ts_prime[C1_LENGTH];
@@ -436,21 +435,20 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
 
     // Get the plain text info from the encrypted frame
-    channel = new_frame->channel;
     timestamp = new_frame->timestamp;
 
-    secret_t *channel_secrets;
-    read_secrets(channel, channel_secrets);
+    secret_t channel_secrets;
+    read_secrets(new_frame->channel, &channel_secrets);
 
     // Probably should not use memcpy here
     // alternative is:
     // uint8_t* mask_key = channel_secrets->mask_key;
     uint8_t mask_key[16];
-    memcpy(mask_key, channel_secrets->mask_key, sizeof(mask_key));
+    memcpy(mask_key, channel_secrets.mask_key, sizeof(mask_key));
     uint8_t message_key[16];
-    memcpy(message_key, channel_secrets->msg_key, sizeof(message_key));
+    memcpy(message_key, channel_secrets.msg_key, sizeof(message_key));
     uint8_t data_key[16];
-    memcpy(data_key, channel_secrets->data_key, sizeof(data_key));
+    memcpy(data_key, channel_secrets.data_key, sizeof(data_key));
 
 
     // Check that we are subscribed to the channel...
@@ -545,8 +543,8 @@ void init() {
         print_debug("First boot.  Setting flash...\n");
 
         // Generate random flash key
-        generate_key(MXC_AES_128BITS, FLASH_KEY);
-        aes_set_key();
+        // generate_key(MXC_AES_128BITS, FLASH_KEY);
+        // aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -571,7 +569,8 @@ void init() {
         init_secret();
         
     } else {// If not first boot
-        aes_set_key();
+        // aes_set_key();
+        int i = 0;
     }
     
 
@@ -585,7 +584,7 @@ void init() {
     }
 
     // Last thing we do is set up MPU to set up read/write accesses
-    mpu_setup();
+    // mpu_setup();
 }
 
 // /* Code between this #ifdef and the subsequent #endif will
@@ -687,7 +686,6 @@ int main(void) {
 
     // initialize the device
     init();
-    // init_secret();
 
     print_debug("Decoder Booted!\n");
 
