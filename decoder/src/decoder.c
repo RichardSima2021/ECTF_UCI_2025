@@ -353,8 +353,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     // Validate the checksum
     if (!validate(chksm)) {
          STATUS_LED_RED();
-         print_error("Failed to validate checksum")
-         return -1
+         print_error("Failed to validate checksum");
+         return -1;
     }
 
     // If we find duplicate channel ids (this should not happen) Check before modifying
