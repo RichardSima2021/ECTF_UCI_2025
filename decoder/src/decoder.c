@@ -174,21 +174,35 @@ int list_channels() {
     return 0;
 }
 
+/**
+ * @brief Validates the checksum of the subscription information
+ * 
+ * @param chksm The checksum to be validated
+ * 
+ * @return 0 upon success. -1 if error
+ */
+int validate(uint8_t *chksm) {
+    // Validate checksum with comparator value
+    if (memcmp(chksm, checksum, 20) != 0) {
+        return -1;
+    }
+    return 0;
+}
 
 /** @brief Extracts subscription information and checksum from interwoven message.
  * 
  *  @param intrwvn_msg A pointer to the beginning of our interwoven subscription information
  *  @param subscription_info A pointer to the output of the extracted subscription information
- *  @param checksum A pointer to the output of the extracted checksum
+ *  @param chksm A pointer to the output of the extracted checksum
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *checksum) {
+int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
     if (intrwvn_msg == NULL) return -1;
     if (subscription_info == NULL) return -1;
-    if (checksum == NULL) return -1;
+    if (chksm == NULL) return -1;
 
 
     // Expecting 48 bytes from interwoven message
@@ -213,13 +227,13 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
             temp_subscription_arr[i / 2] = intrwvn_msg[i];
         }
         else {
-            checksum[i / 2] = intrwvn_msg[i];
+            chksm[i / 2] = intrwvn_msg[i];
         }
     }
 
     // Null-terminate the output strings
     temp_subscription_arr[20] = '\0';
-    checksum[20] = '\0';
+    chksm[20] = '\0';
 
     // Copy the temporary subscription array into the subscription_info struct
     /*
@@ -328,20 +342,20 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     subscription_update_packet_t *update;
     update->channel = channel_id;
 
-    uint8_t checksum [20];
+    uint8_t chksm [20];
 
-    if (extract(interwoven_decrypted, update, checksum) != 0) {
+    if (extract(interwoven_decrypted, update, chksm) != 0) {
         STATUS_LED_RED();
         print_error("Failed to extract\n");
         return -1;
     }
     
     // Validate the checksum
-    // if (!validate(checksum)) {
-    //      STATUS_LED_RED();
-    //      print_error("Failed to validate checksum")
-    //      return -1
-    // }
+    if (!validate(chksm)) {
+         STATUS_LED_RED();
+         print_error("Failed to validate checksum")
+         return -1
+    }
 
     // If we find duplicate channel ids (this should not happen) Check before modifying
     if (found_duplicate_channel_id()) {
