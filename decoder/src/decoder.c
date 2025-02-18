@@ -295,6 +295,9 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         3. Use subscription key from corresponding secret_t to decrypt packet
         4. De-interweave to get concatenated sub info
         5. Extract sub info
+        5.25 Validate checksum
+        5.5  Check for duplicate channel
+        5.75 Check for emergency channel
         6. Update sub info
     */
 
@@ -316,7 +319,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
 
     // 2.
-    // read_secrets(channel_id, channel_secrets);
+    read_secrets(channel_id, channel_secrets);
 
     // 3.
     decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
@@ -329,19 +332,33 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     if (extract(interwoven_decrypted, update, checksum) != 0) {
         STATUS_LED_RED();
-        print_error("Failed to update subscription - could not update subscription\n");
+        print_error("Failed to extract\n");
         return -1;
     }
     
+    // Validate the checksum
+    // if (!validate(checksum)) {
+    //      STATUS_LED_RED();
+    //      print_error("Failed to validate checksum")
+    //      return -1
+    // }
 
-    // 6.
-    int i;
+    // If we find duplicate channel ids (this should not happen) Check before modifying
+    if (found_duplicate_channel_id()) {
+        STATUS_LED_RED();
+        print_error("Channel list should not contain duplicates\n");
+        return -1;
+    }
 
+    // Emergency channel fix
     if (update->channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
     }
+
+    // 6.
+    int i;
 
     bool modified = false;
     // Find the first empty slot in the subscription array
@@ -372,14 +389,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
             }
             
         }
-    }
-
-
-    // If we find duplicate channel ids (this should not happen)
-    if (found_duplicate_channel_id()) {
-        STATUS_LED_RED();
-        print_error("Channel list should not contain duplicates\n");
-        return -1;
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);

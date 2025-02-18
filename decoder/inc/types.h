@@ -102,7 +102,7 @@ typedef struct {
     char msg_key[16];
     char data_key[16];
     char subscription_key[16];
-    char check_sum[24];
+    char check_sum[20];
 } secret_t;
 
 
