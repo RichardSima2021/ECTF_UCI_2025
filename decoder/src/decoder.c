@@ -181,9 +181,9 @@ int list_channels() {
  * 
  * @return 0 upon success. -1 if error
  */
-int validate(uint8_t *chksm) {
+int validate(uint8_t *chksm, uint8_t *check_sum) {
     // Validate checksum with comparator value
-    if (memcmp(chksm, checksum, 20) != 0) {
+    if (memcmp(chksm, check_sum, 20) != 0) {
         return -1;
     }
     return 0;
@@ -352,7 +352,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
     
     // Validate the checksum
-    if (!validate(chksm)) {
+    if (!validate(chksm, channel_secrets->check_sum)) {
          STATUS_LED_RED();
          print_error("Failed to validate checksum");
          return -1;
