@@ -301,7 +301,7 @@ bool found_duplicate_channel_id() {
 */
 //                                         this update info will be updated later to be encoded input
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
-    volatile char pad[500] = {0};
+    //volatile char pad[500] = {0};
     /*   
     2. Update subscription 
         1. Extract first four bytes to get channel ID
@@ -422,7 +422,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 */
 
 int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
-    volatile char pad[500] = {0};
+    //volatile char pad[500] = {0};
     char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
 
