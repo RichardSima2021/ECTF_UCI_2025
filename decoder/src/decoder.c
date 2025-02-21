@@ -545,8 +545,8 @@ void init() {
         print_debug("First boot.  Setting flash...\n");
 
         // Generate random flash key
-        // generate_key(MXC_AES_128BITS, FLASH_KEY);
-        // aes_set_key();
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -571,8 +571,7 @@ void init() {
         init_secret();
         
     } else {// If not first boot
-        // aes_set_key();
-        int i = 0;
+        aes_set_key();
     }
     
 
