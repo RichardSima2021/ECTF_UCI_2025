@@ -27,7 +27,7 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "secret.h"
+#include "./../secrets/secret.h"
 
 
 #include <wolfssl/options.h>
@@ -341,7 +341,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
 
     // 4. & 5.
-    struct subscription_update_packet_t update;
+    static subscription_update_packet_t temp = {0,0,0,0};
+    static subscription_update_packet_t* update = &temp;
     update->channel = channel_id;
 
     uint8_t chksm [20];
