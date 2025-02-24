@@ -72,8 +72,10 @@ typedef struct{
 } encrypted_frame_packet_t;
 
 typedef struct {
-    char encrypted_packet[68];
-}   encrypted_update_packet;
+    channel_id_t channel_id;
+    uint8_t interwoven_bytes[48];
+    uint8_t iv[16];
+} encrypted_update_packet;
 
 typedef uint8_t interwoven_bytes[48];
 
@@ -125,7 +127,5 @@ typedef struct {
     uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
     channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
 } flash_entry_t;
-
-typedef uint8_t interwoven_bytes[48];
 
 #endif

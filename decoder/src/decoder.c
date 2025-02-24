@@ -197,7 +197,7 @@ int validate(uint8_t *chksm, uint8_t *check_sum) {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
+int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
     
@@ -317,35 +317,24 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         6. Update sub info
     */
 
-    channel_id_t channel_id;
-    secret_t *channel_secrets;
-    interwoven_bytes *interwoven_encrypted;
-    interwoven_bytes *interwoven_decrypted;
-    // get iv from packet (last 16 bytes)
-
-    char iv[16];
-    memcpy(iv, &packet->encrypted_packet[52], 16);
+    secret_t channel_secrets;
+    uint8_t interwoven_decrypted[48];
 
     // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
     //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
-    // 1.
-    memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
-    // 1.5
-    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
-
     // 2.
-    read_secrets(channel_id, channel_secrets);
+    read_secrets(packet->channel_id, &channel_secrets);
 
     // 3.
-    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
+    decrypt_sym(packet->interwoven_bytes, 48, channel_secrets.subscription_key, packet->iv, &interwoven_decrypted);
 
     // 4. & 5.
-    static subscription_update_packet_t temp = {0,0,0,0};
-    static subscription_update_packet_t* update = &temp;
-    update->channel = channel_id;
+    static subscription_update_packet_t temp = {0, 0, 0, 0};
+    subscription_update_packet_t *update = &temp;
+    update->channel = packet->channel_id;
 
-    uint8_t chksm [20];
+    uint8_t chksm[20];
 
     if (extract(interwoven_decrypted, update, chksm) != 0) {
         STATUS_LED_RED();
@@ -363,7 +352,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
     
     // Validate the checksum
-    if (!validate(chksm, channel_secrets->check_sum)) {
+    if (!validate(chksm, channel_secrets.check_sum)) {
          STATUS_LED_RED();
          print_error("Failed to validate checksum");
          return -1;
@@ -732,14 +721,8 @@ int main(void) {
         //result = read_packet(&cmd, uart_buf, &pkt_len);
         result = 0;
         cmd = 'S';
-        uint8_t uart_buf[] = { 0x01, 0x00, 0x00, 0x00, 0xC0, 0x04, 0x0B, 0x8A, 0xB4, 0x07, 
-                           0x81, 0x0F, 0xE6, 0x1F, 0xAC, 0xBF, 0x5E, 0x66, 0x5C, 0xDA, 
-                           0xDB, 0x3F, 0xE4, 0x60, 0xB3, 0x5B, 0x45, 0xD4, 0x9D, 0x06, 
-                           0xB3, 0xEF, 0x62, 0x2A, 0x70, 0x3E, 0x0B, 0x27, 0x3E, 0x4A, 
-                           0x52, 0xBE, 0x7D, 0x46, 0x43, 0xB9, 0x86, 0x87, 0x61, 0x21, 
-                           0x7D, 0x6B, 0x4F, 0x38, 0xA8, 0x2E, 0xCB, 0x2F, 0x6C, 0x6C, 
-                           0x25, 0x5B, 0x9B, 0x3F, 0x7E, 0xCC, 0xA4, 0xB9 };
-
+        uint8_t uart_buf[] = { 0x01, 0x00, 0x00, 0x00, 0x7E, 0x1F, 0xC3, 0x49, 0x2D, 0x36, 0x35, 0x60, 0xA6, 0x93, 0xC5, 0x31, 0x3D, 0x48, 0xC7, 0x6E, 0x33, 0x47, 0x6A, 0x8B, 0x40, 0x67, 0x89, 0x13, 0x26, 0x47, 0xFD, 0x84, 0x17, 0xD0, 0x3C, 0x89, 0x32, 0xCE, 0xE7, 0x94, 0xB9, 0xB6, 0x37, 0x77, 0x59, 0x1D, 0x5D, 0x06, 0xED, 0x28, 0x07, 0x42, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 };
+        
         if (result < 0) {
             STATUS_LED_ERROR();
             print_error("Failed to receive cmd from host. Flushing UART...\n");
