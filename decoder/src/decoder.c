@@ -27,7 +27,7 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "secret.h"
+#include "./../secrets/secret.h"
 
 
 #include <wolfssl/options.h>
