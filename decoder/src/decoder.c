@@ -28,6 +28,7 @@
 #include "mpu.h"
 
 #include "secret.h"
+#include "validate_timestamp.h"
 
 
 #include <wolfssl/options.h>
@@ -452,17 +453,19 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     uint8_t data_key[16];
     memcpy(data_key, channel_secrets.data_key, 16);
 
+    channel_id_t channel_id = new_frame->channel;
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    // if (!is_subscribed(channel)) {
-    //     STATUS_LED_RED();
-    //     sprintf(
-    //         output_buf,
-    //         "Receiving unsubscribed channel data.  %u\n", channel);
-    //     print_error(output_buf);
-    //     return -1;
-    // }
+    if (!is_subscribed(channel_id)) {
+        STATUS_LED_RED();
+        sprintf(
+            output_buf,
+            "Receiving unsubscribed channel data.  %u\n", channel_id);
+        print_error(output_buf);
+        // print_error("Unsubscribed channel");
+        return -1;
+    }    
 
     print_debug("Subscription Valid\n");
 
@@ -516,6 +519,14 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
 
     // TODO: Validation of Time Stamp Here
+    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
+        update_current_timestamp(channel_id, timestamp);
+    } else {
+        STATUS_LED_RED();
+        print_error("Invalid timestamp");
+    }
+
+
 
     
     write_packet(DECODE_MSG, frame_data, new_frame->frame_length);
@@ -558,6 +569,11 @@ void init() {
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
         }
+
+        subscription[1].start_timestamp = 0;
+        subscription[1].end_timestamp = 64;
+        subscription[1].active = true;
+        subscription[1].id = 3;
 
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
