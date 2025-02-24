@@ -62,4 +62,8 @@
  */
 uint8_t mpu_setup(void);
 
+void flash_privileged_read(uint32_t address, void *buffer, uint32_t len);
+
+int flash_privileged_write(uint32_t address, void* buffer, uint32_t len);
+
 #endif // MPU_H
