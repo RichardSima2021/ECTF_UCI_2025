@@ -409,9 +409,8 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     flash_erase_page(FLASH_STATUS_ADDR);
     
 
-    // TODO: move over to privileged write    
-    // flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
