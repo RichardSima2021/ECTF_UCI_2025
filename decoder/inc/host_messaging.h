@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "advanced_uart.h"
+#include "random.h"
 
 #define CMD_TYPE_LEN sizeof(char)
 #define CMD_LEN_LEN sizeof(uint16_t)

@@ -404,7 +404,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     uint8_t ts_prime[C1_LENGTH];
     uint8_t ts_decrypted[sizeof(timestamp_t)];
     uint8_t nonce[KEY_SIZE];
-    uint8_t frame_data[FRAME_SIZE];
+    volatile uint8_t frame_data[FRAME_SIZE];
     uint8_t c1_key[KEY_SIZE] = {0};
     uint8_t c2_key[KEY_SIZE] = {0};
 

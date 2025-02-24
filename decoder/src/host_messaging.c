@@ -208,11 +208,15 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
         *len = header.len;
     }
 
+    Random_Delay();
     if (cmd == DECODE_MSG && len > 124) {
+        Random_Delay();
         return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
     } else if (cmd == SUBSCRIBE_MSG && len > 68) {
+        Random_Delay();
         return -1; // Reject packets larger than 68 bytes, invalid lengths are not handled
     } else if (cmd == LIST_MSG && len != 0) {
+        Random_Delay();
         return -1; // Reject packets larger than 0 bytes, invalid lengths are not handled
     }
 

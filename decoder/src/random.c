@@ -50,7 +50,7 @@ void generate_key(mxc_aes_keys_t keySize, uint32_t address) {
         break;
     };
 
-    uint32_t keyBuffer[keyLenChars];
+    volatile uint32_t keyBuffer[keyLenChars];
     Rand_String(keyBuffer, keyLenChars);
     // write key to flash (write it in overlay region)
 

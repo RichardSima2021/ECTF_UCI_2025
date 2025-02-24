@@ -11,7 +11,7 @@
  * @brief Set the AES key into thte AES key registers 
  */
 void aes_set_key() {
-	uint32_t key[4];
+	volatile uint32_t key[4];
     MXC_FLC_Read(FLASH_KEY, key, 4 * sizeof(uint32_t)); // flash_read_raw
 	MXC_AESKEYS->key0 = key[0];
 	MXC_AESKEYS->key1 = key[1];
