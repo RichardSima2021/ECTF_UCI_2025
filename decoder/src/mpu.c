@@ -1,6 +1,20 @@
 #include "mpu.h"
 #include <stdint.h>
 
+void SVC_Handler(void) {
+    __set_CONTROL(__get_CONTROL() & ~0x1);
+    __ISB();
+}
+
+void request_privilege() {
+    __asm("svc #0");
+}
+
+void drop_privilege() {
+    __set_CONTROL(__get_CONTROL() | 0x1);
+    __ISB();
+}
+
 
 /**
 * @brief    Setup the MPU
@@ -54,4 +68,17 @@ uint8_t mpu_setup() {
     __ISB();
 
     return 0;
+}
+
+void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
+    request_privilege();
+    flash_read(address, buffer, len);
+    drop_privilege();
+}
+
+int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
+    request_privilege();
+    int error = flash_write(address, buffer, len);
+    drop_privilege();
+    return error;
 }
