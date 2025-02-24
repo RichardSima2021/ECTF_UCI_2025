@@ -83,10 +83,11 @@ int flash_erase_page(uint32_t address){
 void flash_read(uint32_t address, void *buffer, uint32_t len) {
     uint32_t ciphertext[len];
 
-    MXC_FLC_Read(address, ciphertext, len);
+    //MXC_FLC_Read(address, ciphertext, len);
+    MXC_FLC_Read(address, buffer, len);
     
     // Decrypt after read:
-    decrypt(len, ciphertext, buffer);
+    //decrypt(len, ciphertext, buffer);
 
     memset(ciphertext, 0, sizeof(ciphertext));
 }
@@ -112,9 +113,10 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
     
     uint32_t ciphertext[len];
 
-    encrypt(len, buffer, ciphertext);
+    //encrypt(len, buffer, ciphertext);
     
-    int error = MXC_FLC_Write(address, len, ciphertext);
+    //int error = MXC_FLC_Write(address, len, ciphertext);
+    int error = MXC_FLC_Write(address, len, buffer);
 
     memset(buffer, 0, len);
 

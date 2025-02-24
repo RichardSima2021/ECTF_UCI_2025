@@ -200,6 +200,7 @@ int validate(uint8_t *chksm, uint8_t *check_sum) {
 int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
+    
     if (intrwvn_msg == NULL) return -1;
     if (subscription_info == NULL) return -1;
     if (chksm == NULL) return -1;
@@ -339,14 +340,23 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
 
     // 4. & 5.
-    subscription_update_packet_t *update;
+    struct subscription_update_packet_t update;
     update->channel = channel_id;
 
     uint8_t chksm [20];
 
     if (extract(interwoven_decrypted, update, chksm) != 0) {
         STATUS_LED_RED();
-        print_error("Failed to extract\n");
+        //print_error("Failed to extract\n");
+        if(interwoven_decrypted == NULL){
+            print_error("interwoven_decrypted NULL\n");
+        }
+        if(update == NULL){
+            print_error("update NULL\n");
+        }
+        if(chksm == NULL){
+            print_error("chksm null\n");
+        }
         return -1;
     }
     
@@ -453,14 +463,14 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    // if (!is_subscribed(channel)) {
-    //     STATUS_LED_RED();
-    //     sprintf(
-    //         output_buf,
-    //         "Receiving unsubscribed channel data.  %u\n", channel);
-    //     print_error(output_buf);
-    //     return -1;
-    // }
+    if (!is_subscribed(new_frame->channel)) {
+        STATUS_LED_RED();
+        sprintf(
+        output_buf,
+        "Receiving unsubscribed channel data.  %u\n", new_frame->channel);
+        print_error(output_buf);
+        return -1;
+    }
 
     print_debug("Subscription Valid\n");
 
@@ -717,7 +727,16 @@ int main(void) {
 
         STATUS_LED_GREEN();
 
-        result = read_packet(&cmd, uart_buf, &pkt_len);
+        //result = read_packet(&cmd, uart_buf, &pkt_len);
+        result = 0;
+        cmd = 'S';
+        uint8_t uart_buf[] = { 0x01, 0x00, 0x00, 0x00, 0xC0, 0x04, 0x0B, 0x8A, 0xB4, 0x07, 
+                           0x81, 0x0F, 0xE6, 0x1F, 0xAC, 0xBF, 0x5E, 0x66, 0x5C, 0xDA, 
+                           0xDB, 0x3F, 0xE4, 0x60, 0xB3, 0x5B, 0x45, 0xD4, 0x9D, 0x06, 
+                           0xB3, 0xEF, 0x62, 0x2A, 0x70, 0x3E, 0x0B, 0x27, 0x3E, 0x4A, 
+                           0x52, 0xBE, 0x7D, 0x46, 0x43, 0xB9, 0x86, 0x87, 0x61, 0x21, 
+                           0x7D, 0x6B, 0x4F, 0x38, 0xA8, 0x2E, 0xCB, 0x2F, 0x6C, 0x6C, 
+                           0x25, 0x5B, 0x9B, 0x3F, 0x7E, 0xCC, 0xA4, 0xB9 };
 
         if (result < 0) {
             STATUS_LED_ERROR();
