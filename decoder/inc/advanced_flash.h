@@ -12,6 +12,8 @@
 #include "icc.h"
 #include "nvic_table.h"
 
+#include "mpu.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
