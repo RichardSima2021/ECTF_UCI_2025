@@ -66,7 +66,7 @@ int dummy_encrypt() {
 int encrypt(uint32_t len, uint32_t* data, uint32_t* enc_data) {
 	mxc_aes_req_t req;
 
-	req.length = len;
+	req.length = len / 4 + (len % 4 == 0 ? 0 : 1);
 	req.inputData = data;
 	req.resultData = enc_data;
 	req.keySize = 0;
@@ -92,7 +92,7 @@ int decrypt(uint32_t len, uint32_t* enc_data, uint32_t* dec_data) {
 		dummy_encrypt();
 	}
 
-	req.length = len;
+	req.length = len / 4 + (len % 4 == 0 ? 0 : 1);
 	req.inputData = enc_data;
 	req.resultData = dec_data;
 	req.keySize = 0;

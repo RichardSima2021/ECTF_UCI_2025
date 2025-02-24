@@ -103,6 +103,7 @@ typedef struct {
     char data_key[16];
     char subscription_key[16];
     char check_sum[20];
+    char padding[8];
 } secret_t;
 
 

@@ -302,6 +302,7 @@ bool found_duplicate_channel_id() {
 */
 //                                         this update info will be updated later to be encoded input
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
+    //volatile char pad[500] = {0};
     /*   
     2. Update subscription 
         1. Extract first four bytes to get channel ID
@@ -431,6 +432,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 */
 
 int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
+    //volatile char pad[500] = {0};
     char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
 
@@ -454,11 +456,11 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // alternative is:
     // uint8_t* mask_key = channel_secrets->mask_key;
     uint8_t mask_key[16];
-    memcpy(mask_key, channel_secrets.mask_key, sizeof(mask_key));
+    memcpy(mask_key, channel_secrets.mask_key, 16);
     uint8_t message_key[16];
-    memcpy(message_key, channel_secrets.msg_key, sizeof(message_key));
+    memcpy(message_key, channel_secrets.msg_key, 16);
     uint8_t data_key[16];
-    memcpy(data_key, channel_secrets.data_key, sizeof(data_key));
+    memcpy(data_key, channel_secrets.data_key, 16);
 
 
     // Check that we are subscribed to the channel...
@@ -553,8 +555,8 @@ void init() {
         print_debug("First boot.  Setting flash...\n");
 
         // Generate random flash key
-        // generate_key(MXC_AES_128BITS, FLASH_KEY);
-        // aes_set_key();
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -579,8 +581,7 @@ void init() {
         init_secret();
         
     } else {// If not first boot
-        // aes_set_key();
-        int i = 0;
+        aes_set_key();
     }
     
 
