@@ -57,9 +57,11 @@ def gen_subscription(
     #check_sum_channel = ast.literal_eval(check_sum)
 
     #print(check_sum_channel)
-    print("sub and check: ", sub_info, check_sum)
+    # print("sub and check: ", sub_info, check_sum)
 
     interwoven_bytestring = interweave(sub_info, check_sum)
+
+    print(interwoven_bytestring)
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, channel)
     
@@ -75,7 +77,8 @@ def gen_subscription(
     print("ret + encrypted_data length: ", len(ret + encrypted_data))
     print("ret + encrpted_data: ", ret + encrypted_data)
     '''
-
+    # print(channel_num + encrypted_data)
+    # print(len(channel_num + encrypted_data))
     return channel_num + encrypted_data
 
     

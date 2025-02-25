@@ -27,7 +27,7 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "secret.h"
+#include "./../secrets/secret.h"
 #include "validate_timestamp.h"
 
 
@@ -198,7 +198,7 @@ int validate(uint8_t *chksm, uint8_t *check_sum) {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
+int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
     if (intrwvn_msg == NULL) return -1;
@@ -317,43 +317,37 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         6. Update sub info
     */
 
-    channel_id_t channel_id;
-    secret_t *channel_secrets;
-    interwoven_bytes *interwoven_encrypted;
-    interwoven_bytes *interwoven_decrypted;
-    // get iv from packet (last 16 bytes)
-
-    char iv[16];
-    memcpy(iv, &packet->encrypted_packet[52], 16);
+    // secret_t channel_secrets;
+    secret_t channel_secrets = {
+        1,
+        { 0xd7, 0x01, 0x17, 0x1c, 0x15, 0x46, 0xc2, 0x8e, 0xb2, 0x9a, 0x14, 0xd6, 0x40, 0xbd, 0x5b, 0xc1 },
+        { 0x86, 0xfb, 0x31, 0x46, 0xfd, 0x53, 0xdb, 0x1d, 0x95, 0xba, 0x06, 0xe4, 0x74, 0x84, 0x8b, 0x41 },
+        { 0x5b, 0xf2, 0xb3, 0x9c, 0x29, 0xdf, 0xb0, 0x16, 0x6a, 0xc5, 0x45, 0x25, 0xf6, 0x28, 0xf3, 0xd1 },
+        { 0x3f, 0x9a, 0x6d, 0x7d, 0x8d, 0xc3, 0xa9, 0xfb, 0xbd, 0xda, 0x8e, 0xba, 0x69, 0x60, 0x2d, 0x58 },
+        { 0x92, 0xb5, 0xe0, 0x71, 0xb2, 0x39, 0xd6, 0xe7, 0x03, 0x8a, 0x33, 0xf1, 0x16, 0x77, 0x4a, 0x3c, 0xa4, 0x1f, 0x9c, 0x46 }
+    };
+    uint8_t interwoven_decrypted[48];
 
     // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
     //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
-    // 1.
-    memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
-    // 1.5
-    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
+    // read_secrets(packet->channel, &channel_secrets);
 
-    // 2.
-    read_secrets(channel_id, channel_secrets);
+    decrypt_sym(packet->interwoven_bytes, 48, &channel_secrets.subscription_key, packet->iv, &interwoven_decrypted);
 
-    // 3.
-    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
-
-    // 4. & 5.
-    subscription_update_packet_t *update;
-    update->channel = channel_id;
+    subscription_update_packet_t update;
+    memcpy(&update.channel, packet->channel, sizeof(channel_id_t));
 
     uint8_t chksm [20];
 
-    if (extract(interwoven_decrypted, update, chksm) != 0) {
+    if (extract(interwoven_decrypted, &update, chksm) != 0) {
         STATUS_LED_RED();
         print_error("Failed to extract\n");
         return -1;
     }
     
     // Validate the checksum
-    if (!validate(chksm, channel_secrets->check_sum)) {
+    if (!validate(chksm, &channel_secrets.check_sum)) {
          STATUS_LED_RED();
          print_error("Failed to validate checksum");
          return -1;
@@ -367,7 +361,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // Emergency channel fix
-    if (update->channel == EMERGENCY_CHANNEL) {
+    if (&update.channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
@@ -381,9 +375,9 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
-        if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
+        if (decoder_status.subscribed_channels[i].id == &update.channel || !decoder_status.subscribed_channels[i].active) {
             // already performed modification && found duplicate channel id
-            if (modified && decoder_status.subscribed_channels[i].id == update->channel) {
+            if (modified && decoder_status.subscribed_channels[i].id == &update.channel) {
                 reset_channel(i);
             }
             // already performed modification and found inactive channel 
@@ -396,11 +390,11 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 // set channel status to true
                 decoder_status.subscribed_channels[i].active = true;
                 // set channel id to incoming id
-                decoder_status.subscribed_channels[i].id = update->channel;
+                decoder_status.subscribed_channels[i].id = &update.channel;
                 // set start timestamp
-                decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
+                decoder_status.subscribed_channels[i].start_timestamp = &update.start_timestamp;
                 // set end timestamp
-                decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
+                decoder_status.subscribed_channels[i].end_timestamp = &update.end_timestamp;
                 modified = true;
             }
             
@@ -460,15 +454,15 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    if (!is_subscribed(channel_id)) {
-        STATUS_LED_RED();
-        sprintf(
-            output_buf,
-            "Receiving unsubscribed channel data.  %u\n", channel_id);
-        print_error(output_buf);
-        // print_error("Unsubscribed channel");
-        return -1;
-    }    
+    // if (!is_subscribed(channel_id)) {
+    //     STATUS_LED_RED();
+    //     sprintf(
+    //         output_buf,
+    //         "Receiving unsubscribed channel data.  %u\n", channel_id);
+    //     print_error(output_buf);
+    //     // print_error("Unsubscribed channel");
+    //     return -1;
+    // }    
 
     print_debug("Subscription Valid\n");
 
@@ -522,12 +516,12 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
 
     // TODO: Validation of Time Stamp Here
-    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-        update_current_timestamp(channel_id, timestamp);
-    } else {
-        STATUS_LED_RED();
-        print_error("Invalid timestamp");
-    }
+    // if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
+    //     update_current_timestamp(channel_id, timestamp);
+    // } else {
+    //     STATUS_LED_RED();
+    //     print_error("Invalid timestamp");
+    // }
 
 
 
@@ -559,8 +553,8 @@ void init() {
         print_debug("First boot.  Setting flash...\n");
 
         // Generate random flash key
-        generate_key(MXC_AES_128BITS, FLASH_KEY);
-        aes_set_key();
+        // generate_key(MXC_AES_128BITS, FLASH_KEY);
+        // aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -590,7 +584,7 @@ void init() {
         init_secret();
         
     } else {// If not first boot
-        aes_set_key();
+        // aes_set_key();
     }
     
 
@@ -729,6 +723,10 @@ int main(void) {
 
     // flash_test();
     //uart_test();
+
+    uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x2F, 0x75, 0x17, 0x73, 0x4A, 0xFA, 0x81, 0x65, 0x4B, 0x1F, 0xCD, 0x10, 0x18, 0xC8, 0x7F, 0x05, 0x0D, 0x5F, 0xE9, 0x0F, 0x9D, 0x53, 0x61, 0x36, 0x8F, 0x54, 0x05, 0xCA, 0x65, 0xDD, 0xA1, 0xAE, 0xD4, 0x97, 0xD6, 0x39, 0x7D, 0x4B, 0x1E, 0x77, 0x2A, 0xE4, 0xE4, 0xF2, 0x03, 0x33, 0x99, 0xFE, 0xF3, 0x87, 0x0B, 0x18, 0x33, 0x24, 0xA0, 0x38, 0x3E, 0xCA, 0xD6, 0x53, 0x2C, 0xEA, 0xAD, 0x99 };
+
+    update_subscription(68, (encrypted_update_packet *)data);
 
 
 

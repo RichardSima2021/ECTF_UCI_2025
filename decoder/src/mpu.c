@@ -71,9 +71,9 @@ uint8_t mpu_setup() {
 }
 
 void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
-    request_privilege();
+    // request_privilege();
     flash_read(address, buffer, len);
-    drop_privilege();
+    // drop_privilege();
 }
 
 int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
