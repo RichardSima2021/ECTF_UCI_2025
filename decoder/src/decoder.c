@@ -317,15 +317,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         6. Update sub info
     */
 
-    // secret_t channel_secrets;
-    secret_t channel_secrets = {
-        1,
-        { 0xd7, 0x01, 0x17, 0x1c, 0x15, 0x46, 0xc2, 0x8e, 0xb2, 0x9a, 0x14, 0xd6, 0x40, 0xbd, 0x5b, 0xc1 },
-        { 0x86, 0xfb, 0x31, 0x46, 0xfd, 0x53, 0xdb, 0x1d, 0x95, 0xba, 0x06, 0xe4, 0x74, 0x84, 0x8b, 0x41 },
-        { 0x5b, 0xf2, 0xb3, 0x9c, 0x29, 0xdf, 0xb0, 0x16, 0x6a, 0xc5, 0x45, 0x25, 0xf6, 0x28, 0xf3, 0xd1 },
-        { 0x3f, 0x9a, 0x6d, 0x7d, 0x8d, 0xc3, 0xa9, 0xfb, 0xbd, 0xda, 0x8e, 0xba, 0x69, 0x60, 0x2d, 0x58 },
-        { 0x92, 0xb5, 0xe0, 0x71, 0xb2, 0x39, 0xd6, 0xe7, 0x03, 0x8a, 0x33, 0xf1, 0x16, 0x77, 0x4a, 0x3c, 0xa4, 0x1f, 0x9c, 0x46 }
-    };
+    secret_t channel_secrets;
     uint8_t interwoven_decrypted[48];
     memset(interwoven_decrypted, 0, 48);
     subscription_update_packet_t update;
@@ -338,7 +330,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
     //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
-    // read_secrets(packet->channel, &channel_secrets);
+    read_secrets(packet->channel, &channel_secrets);
 
     decrypt_sym(packet->interwoven_bytes, 48, &channel_secrets.subscription_key, packet->iv, interwoven_decrypted);
 
@@ -362,7 +354,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // If we find duplicate channel ids (this should not happen) Check before modifying
-    if (found_duplicate_channel_id()) {
+    if (found_duplicate_channel_id() == -1) {
         STATUS_LED_RED();
         print_error("Channel list should not contain duplicates\n");
         return -1;
@@ -376,11 +368,11 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // 6.
-    int i;
 
     bool modified = false;
+    int active_channel = 0;
     // Find the first empty slot in the subscription array
-    for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
+    for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
         if (decoder_status.subscribed_channels[i].id == &update.channel || !decoder_status.subscribed_channels[i].active) {
@@ -404,9 +396,20 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 // set end timestamp
                 decoder_status.subscribed_channels[i].end_timestamp = &update.end_timestamp;
                 modified = true;
+                active_channel++;
             }
             
         }
+        else if(decoder_status.subscribed_channels[i].active){
+            active_channel++;
+        }
+    }
+
+    // If we do not have any room for more subscriptions
+    if (active_channel == MAX_CHANNEL_COUNT) {
+        STATUS_LED_RED();
+        print_error("Failed to update subscription - max subscriptions installed\n");
+        return -1;
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);
@@ -462,15 +465,15 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    // if (!is_subscribed(channel_id)) {
-    //     STATUS_LED_RED();
-    //     sprintf(
-    //         output_buf,
-    //         "Receiving unsubscribed channel data.  %u\n", channel_id);
-    //     print_error(output_buf);
-    //     // print_error("Unsubscribed channel");
-    //     return -1;
-    // }    
+    if (!is_subscribed(channel_id)) {
+        STATUS_LED_RED();
+        sprintf(
+            output_buf,
+            "Receiving unsubscribed channel data.  %u\n", channel_id);
+        print_error(output_buf);
+        // print_error("Unsubscribed channel");
+        return -1;
+    }    
 
     print_debug("Subscription Valid\n");
 
@@ -524,12 +527,12 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
 
     // TODO: Validation of Time Stamp Here
-    // if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-    //     update_current_timestamp(channel_id, timestamp);
-    // } else {
-    //     STATUS_LED_RED();
-    //     print_error("Invalid timestamp");
-    // }
+    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
+        update_current_timestamp(channel_id, timestamp);
+    } else {
+        STATUS_LED_RED();
+        print_error("Invalid timestamp");
+    }
 
 
 
@@ -561,8 +564,8 @@ void init() {
         print_debug("First boot.  Setting flash...\n");
 
         // Generate random flash key
-        // generate_key(MXC_AES_128BITS, FLASH_KEY);
-        // aes_set_key();
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -592,7 +595,7 @@ void init() {
         init_secret();
         
     } else {// If not first boot
-        // aes_set_key();
+        aes_set_key();
     }
     
 
@@ -732,9 +735,9 @@ int main(void) {
     // flash_test();
     //uart_test();
 
-    uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x12, 0x39, 0x99, 0xBD, 0x27, 0x78, 0x26, 0xC0, 0xCB, 0x9F, 0x93, 0xB9, 0x27, 0x3B, 0x4B, 0x47, 0xDA, 0x5F, 0xBE, 0xE4, 0x3D, 0xEB, 0x81, 0x6A, 0x3B, 0x65, 0x99, 0xF0, 0x06, 0x4E, 0x27, 0x8D, 0xDA, 0xAE, 0x7E, 0x12, 0x1D, 0xBA, 0xE9, 0xD5, 0x25, 0x9C, 0x5E, 0x5A, 0x32, 0x65, 0x82, 0x28, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 };
+    // uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x12, 0x39, 0x99, 0xBD, 0x27, 0x78, 0x26, 0xC0, 0xCB, 0x9F, 0x93, 0xB9, 0x27, 0x3B, 0x4B, 0x47, 0xDA, 0x5F, 0xBE, 0xE4, 0x3D, 0xEB, 0x81, 0x6A, 0x3B, 0x65, 0x99, 0xF0, 0x06, 0x4E, 0x27, 0x8D, 0xDA, 0xAE, 0x7E, 0x12, 0x1D, 0xBA, 0xE9, 0xD5, 0x25, 0x9C, 0x5E, 0x5A, 0x32, 0x65, 0x82, 0x28, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 };
     
-    update_subscription(68, (encrypted_update_packet *)data);
+    // update_subscription(68, (encrypted_update_packet *)data);
 
 
 
