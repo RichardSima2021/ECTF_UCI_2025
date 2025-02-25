@@ -1,29 +1,24 @@
 /**
- * @file "simple_uart.h"
- * @author Samuel Meyers
- * @brief Simple UART Interface Header 
+ * @file "advanced_uart.h"
+ * @author Bug Eaters
+ * @brief Advanced UART Interface Header 
  * @date 2025
- *
- * This source file is part of an example system for MITRE's 2025 Embedded System CTF (eCTF).
- * This code is being provided only for educational purposes for the 2025 MITRE eCTF competition,
- * and may not meet MITRE standards for quality. Use this code at your own risk!
- *
- * @copyright Copyright (c) 2025 The MITRE Corporation
  */
-
-
-#ifndef __SIMPLE_UART__
-#define __SIMPLE_UART__
+ 
+#ifndef __ADVANCED_UART__
+#define __ADVANCED_UART__
 
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include "uart.h"
 #include "nvic_table.h"
-#include "host_messaging.h"
+#include "board.h"
 
 /******************************** MACRO DEFINITIONS ********************************/
 #define UART_BAUD 115200
+
+#define MAX_UARTn MXC_UART_GET_UART(CONSOLE_UART)
 
 /******************************** FUNCTION PROTOTYPES ******************************/
 /** @brief Initializes the UART Interrupt handler.
@@ -36,7 +31,8 @@ int uart_init(void);
 /** @brief Reads a byte from UART and reports an error if the read fails.
  * 
  *  @return The character read.  Otherwise see MAX78000 Error Codes for
- *      a list of return codes.
+ *      a list of return codes. 
+ *  @note maybe we should return a random error code to throw em off 
 */
 int uart_readbyte_raw(void);
 
@@ -44,8 +40,9 @@ int uart_readbyte_raw(void);
  * 
  *  @return The character read.  Otherwise see MAX78000 Error Codes for
  *      a list of return codes.
+ *  @note maybe we should return a random error code to throw em off 
 */
-int uart_readbyte(void);
+uint8_t uart_readbyte(int *status);
 
 /** @brief Writes a byte to UART.
  * 
@@ -57,4 +54,8 @@ void uart_writebyte(uint8_t data);
 */
 void uart_flush(void);
 
-#endif // __SIMPLE_UART__
+/** @brief Flushes UART Read Buffer
+ */
+void uart_flush_rx(void);
+
+#endif // __ADVANCED_UART__

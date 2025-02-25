@@ -12,26 +12,12 @@ Copyright: Copyright (c) 2025 The MITRE Corporation
 
 import argparse
 import json
+import os
+from design.ectf25_design import generate_secret_h #as generate_secret_h
 from pathlib import Path
 
 import secrets as secret_gen
-
 from loguru import logger
-
-
-def gen_channel_key(stream_length=8) -> dict:
-    """Generate mask_key, msg_key, subscription_key for a channel
-    """
-    # Generate a random 16-byte key
-    keys = {}
-    # 8 length of hex is 16 bytes long, json does not accpet hex.
-    keys["mask_key"] = secret_gen.token_hex(stream_length)
-    keys["msg_key"] = secret_gen.token_hex(stream_length)
-    keys["subscription_key"] = secret_gen.token_hex(stream_length)
-    keys["data_key"] = secret_gen.token_hex(stream_length)
-
-    return keys
-
 
 def gen_secrets(channels: list[int]) -> bytes:
     """Generate the contents secrets file
@@ -51,16 +37,32 @@ def gen_secrets(channels: list[int]) -> bytes:
     # Create the secrets object
     # You can change this to generate any secret material
     # The secrets file will never be shared with attackers
-    secrets = {
-        "channels": channels
-    }
-
-    for channel in channels:
-        # Generate secret for each channel
-
-        secrets[f'channel_key_{channel}'] = gen_channel_key()
-
+    # secrets = {
+    #     "channels": channels,
+    #     "some_secrets": "EXAMPLE",
+    # }
     
+
+    secrets = {
+        # creates a new list with the value 0, representing channel 0, 
+        # as the first element
+        "channels": [0] + channels,
+    }
+    secrets['flash_key']=os.urandom(16).hex()
+
+    print('Flash key: ', secrets['flash_key'])
+    
+    for channel in [0] + channels:
+        secrets[f"channel_{channel}"] = {
+            "channel_ID": str(channel),  # Channel ID as an integer
+            "mask_key": os.urandom(16).hex(),  # 16 bytes hex
+            "msg_key": os.urandom(16).hex(),   # 16 bytes hex
+            "data_key": os.urandom(16).hex(),  # 16 bytes hex
+            "subscription_key": os.urandom(16).hex(),  # 16 bytes
+            "check_sum": os.urandom(20).hex(),  # 20 bytes - first four bytes of sub_info (channel_id) will not be encrypted
+        }
+
+
     # NOTE: if you choose to use JSON for your file type, you will not be able to
     # store binary data, and must either use a different file type or encode the
     # binary data to hex, base64, or another type of ASCII-only encoding
@@ -111,9 +113,14 @@ def main():
     logger.debug(f"Generated secrets: {secrets}")
 
     # Open the file, erroring if the file exists unless the --force arg is provided
-    with open(args.secrets_file, "wb" if args.force else "xb") as f:
+
+    # To put the secrets.json file in the secrets directory when generating the json file, prepend "../../secrets"
+    # the name of your json file. Example: python gen_secrets.py ../../secrets/secrets.json 1 2 3
+    with open(args.secrets_file, "wb") as f:
         # Dump the secrets to the file
         f.write(secrets)
+    
+    generate_secret_h.gen_sec(args.secrets_file)
 
     # For your own debugging. Feel free to remove
     logger.success(f"Wrote secrets to {str(args.secrets_file.absolute())}")

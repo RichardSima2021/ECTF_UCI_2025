@@ -338,3 +338,6 @@ msdk/
 *.secrets
 *.subscription
 
+secrets/*
+
+decoder/inc/secret.h

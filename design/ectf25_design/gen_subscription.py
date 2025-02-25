@@ -22,7 +22,6 @@ from Cryptodome.Random import get_random_bytes
 
 from loguru import logger
 
-from encoder import Encoder
 import secrets as secret_gen
 import ast
 
@@ -42,28 +41,31 @@ def gen_subscription(
     """
     # TODO: Update this function to provide a Decoder with whatever data it needs to
     #   subscribe to a new channel
-    
-    encoder = Encoder(secrets)
 
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 
-    sub_key = secrets[f'channel_{channel}']['subscription_key']
+
+    #sub_key = secrets[f'channel_{channel}']['subscription_key']
 
     #sub_info = struct.pack("<IQQI", device_id, start, end, channel)
     sub_info = struct.pack("<IQQ", device_id, start, end)
-    check_sum = secrets[f'channel_{channel}']['check_sum']
+    #check_sum = secrets[f'channel_{channel}']['check_sum']
+    #check_sum = ast.literal_eval(get_channel_key(channel, secrets)['check_sum'])
+    check_sum = bytes.fromhex(get_channel_key(channel, secrets)['check_sum'])
     #check_sum_channel = bytes(check_sum, 'utf-8')
-    check_sum_channel = ast.literal_eval(check_sum)
+    #check_sum_channel = ast.literal_eval(check_sum)
 
     #print(check_sum_channel)
-    print("sub and check: ", sub_info, check_sum_channel)
+    print("sub and check: ", sub_info, check_sum)
 
-    interwoven_bytestring = interweave(sub_info, check_sum_channel)
+    interwoven_bytestring = interweave(sub_info, check_sum)
     
-    encrypted_data = encrypt(interwoven_bytestring, secrets, encoder, channel)
+    encrypted_data = encrypt(interwoven_bytestring, secrets, channel)
     
-    ret = channel.to_bytes(4, byteorder="little", signed=False)
+
+    channel_num = channel.to_bytes(4, byteorder="little", signed=False)
+
 
     '''
     print("interwoven_bytestring length: ", len(interwoven_bytestring))
@@ -73,7 +75,9 @@ def gen_subscription(
     print("ret + encrypted_data length: ", len(ret + encrypted_data))
     print("ret + encrpted_data: ", ret + encrypted_data)
     '''
-    return ret + encrypted_data
+
+    return channel_num + encrypted_data
+
     
 
 def pad(data, block_size):
@@ -84,6 +88,7 @@ def pad(data, block_size):
 
 def interweave(sub_info, check_sum_channel):
     if len(sub_info) != len(check_sum_channel) or len(sub_info) != 20:
+        #print(len(sub_info), len(check_sum_channel))
         raise ValueError("invalid lengths")
     
     ret = bytearray()
@@ -92,7 +97,8 @@ def interweave(sub_info, check_sum_channel):
         ret.append(sub_info[i])
         ret.append(check_sum_channel[i])
         
-    # print("ret", ret)
+
+    #print("ret", ret)
     return bytes(ret)
     
 def get_channel_key(channel, secrets):
@@ -100,14 +106,18 @@ def get_channel_key(channel, secrets):
         raise ValueError("Channel not found in secrets")
     return secrets[f'channel_{channel}']
 
-def encrypt(interwoven_bytestring, secrets, encoder, channel):
+def encrypt(interwoven_bytestring, secrets, channel):
+
     #print("interwoven_bytestring: ", interwoven_bytestring)
+
     data = pad(interwoven_bytestring, 16)
     #print("padded length: ", len(data))
-    channel_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
+    #subscription_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
+    subscription_key = bytes.fromhex(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
 
-    cipher = encoder.sym_encrypt(channel_key, iv, data)
+    aes = AES.new(subscription_key, AES.MODE_CBC, iv)
+    cipher = aes.encrypt(data)
 
     return cipher + iv
     

@@ -18,100 +18,55 @@
 #include "mxc_device.h"
 #include "status_led.h"
 #include "board.h"
+#include "advanced_flash.h"
 #include "mxc_delay.h"
-#include "simple_flash.h"
+#include "advanced_flash.h"
 #include "host_messaging.h"
+#include "types.h"
+#include "random.h"
+#include "advanced_uart.h"
+#include "mpu.h"
 
-#include "simple_uart.h"
+#include "secret.h"
+#include "validate_timestamp.h"
+
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+
 
 /* Code between this #ifdef and the subsequent #endif will
 *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
 *  the projectk.mk file. */
 #ifdef CRYPTO_EXAMPLE
-/* The simple crypto example included with the reference design is intended
-*  to be an example of how you *may* use cryptography in your design. You
-*  are not limited nor required to use this interface in your design. It is
-*  recommended for newer teams to start by only using the simple crypto
-*  library until they have a working design. */
+// /* The simple crypto example included with the reference design is intended
+// *  to be an example of how you *may* use cryptography in your design. You
+// *  are not limited nor required to use this interface in your design. It is
+// *  recommended for newer teams to start by only using the simple crypto
+// *  library until they have a working design. */
 #include "simple_crypto.h"
 #endif  //CRYPTO_EXAMPLE
 
-/**********************************************************
- ******************* PRIMITIVE TYPES **********************
- **********************************************************/
-
-#define timestamp_t uint64_t
-#define channel_id_t uint32_t
-#define decoder_id_t uint32_t
-#define pkt_len_t uint16_t
-
-/**********************************************************
- *********************** CONSTANTS ************************
- **********************************************************/
-
-#define MAX_CHANNEL_COUNT 8
-#define EMERGENCY_CHANNEL 0
-#define FRAME_SIZE 64
-#define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
-// This is a canary value so we can confirm whether this decoder has booted before
-#define FLASH_FIRST_BOOT 0xDEADBEEF
-
-/**********************************************************
- ********************* STATE MACROS ***********************
- **********************************************************/
-
-// Calculate the flash address where we will store channel info as the 2nd to last page available
-#define FLASH_STATUS_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (2 * MXC_FLASH_PAGE_SIZE))
 
 
-/**********************************************************
- *********** COMMUNICATION PACKET DEFINITIONS *************
- **********************************************************/
+// These are some temperory keys for developing purposes. Need to be deleted later
+// uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+// uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+// uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
-#pragma pack(push, 1) // Tells the compiler not to pad the struct members
-// for more information on what struct padding does, see:
-// https://www.gnu.org/software/c-intro-and-ref/manual/html_node/Structure-Layout.html
-typedef struct {
-    channel_id_t channel;
-    timestamp_t timestamp;
-    uint8_t data[FRAME_SIZE];
-} frame_packet_t;
+uint8_t checksum[] = {
+    0xA1, 0xF1, 0x72, 0x5E, 0xD0, 0xE9, 0x3C, 0x2E,
+    0xD6, 0x22, 0xB7, 0x10, 0xBD, 0xA2, 0x6C, 0x0B,
+    0xE9, 0x49, 0xFA, 0x3B, 0xA5, 0x8C, 0xA7, 0x56
+};
 
-typedef struct {
-    decoder_id_t decoder_id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-    channel_id_t channel;
-} subscription_update_packet_t;
-
-typedef struct {
-    channel_id_t channel;
-    timestamp_t start;
-    timestamp_t end;
-} channel_info_t;
-
-typedef struct {
-    uint32_t n_channels;
-    channel_info_t channel_info[MAX_CHANNEL_COUNT];
-} list_response_t;
-
-#pragma pack(pop) // Tells the compiler to resume padding struct members
-
-/**********************************************************
- ******************** TYPE DEFINITIONS ********************
- **********************************************************/
-
-typedef struct {
-    bool active;
-    channel_id_t id;
-    timestamp_t start_timestamp;
-    timestamp_t end_timestamp;
-} channel_status_t;
-
-typedef struct {
-    uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
-    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
-} flash_entry_t;
+uint8_t subscription_key[] = {
+    0x67, 0xE2, 0x7D, 0xB8, 0xEA, 0x72, 0x14, 0x51, // 'g', '\xe2', '}', '\xb8', '\xea', 'r', '\x14', 'Q'
+    0x8E, 0x3C, 0x3C, 0xA3, 0xC0, 0x14, 0x85, 0xA5  // '\x8e', '<', '<', '\xa3', '\xc0', '\x14', '\x85', '\xa5'
+};
 
 /**********************************************************
  ************************ GLOBALS *************************
@@ -119,16 +74,6 @@ typedef struct {
 
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
-
-/**********************************************************
- ******************** REFERENCE FLAG **********************
- **********************************************************/
-
-// trust me, it's easier to get the boot reference flag by
-// getting this running than to try to untangle this
-// TODO: remove this from your final design
-// NOTE: you're not allowed to do this in your code
-typedef uint32_t aErjfkdfru;const aErjfkdfru aseiFuengleR[]={0x1ffe4b6,0x3098ac,0x2f56101,0x11a38bb,0x485124,0x11644a7,0x3c74e8,0x3c74e8,0x2f56101,0x2ca498,0x127bc,0x2e590b1,0x1d467da,0x1fbf0a2,0x11a38bb,0x2b22bad,0x2e590b1,0x1ffe4b6,0x2b61fc1,0x1fbf0a2,0x1fbf0a2,0x2e590b1,0x11644a7,0x2e590b1,0x1cc7fb2,0x1d073c6,0x2179d2e,0};const aErjfkdfru djFIehjkklIH[]={0x138e798,0x2cdbb14,0x1f9f376,0x23bcfda,0x1d90544,0x1cad2d2,0x860e2c,0x860e2c,0x1f9f376,0x25cbe0c,0x11c82b4,0x35ff56,0x3935040,0xc7ea90,0x23bcfda,0x1ae6dee,0x35ff56,0x138e798,0x21f6af6,0xc7ea90,0xc7ea90,0x35ff56,0x1cad2d2,0x35ff56,0x2b15630,0x3225338,0x4431c8,0};typedef int skerufjp;skerufjp siNfidpL(skerufjp verLKUDSfj){aErjfkdfru ubkerpYBd=12+1;skerufjp xUrenrkldxpxx=2253667944%0x432a1f32;aErjfkdfru UfejrlcpD=1361423303;verLKUDSfj=(verLKUDSfj+0x12345678)%60466176;while(xUrenrkldxpxx--!=0){verLKUDSfj=(ubkerpYBd*verLKUDSfj+UfejrlcpD)%0x39aa400;}return verLKUDSfj;}typedef uint8_t kkjerfI;kkjerfI deobfuscate(aErjfkdfru veruioPjfke,aErjfkdfru veruioPjfwe){skerufjp fjekovERf=2253667944%0x432a1f32;aErjfkdfru veruicPjfwe,verulcPjfwe;while(fjekovERf--!=0){veruioPjfwe=(veruioPjfwe-siNfidpL(veruioPjfke))%0x39aa400;veruioPjfke=(veruioPjfke-siNfidpL(veruioPjfwe))%60466176;}veruicPjfwe=(veruioPjfke+0x39aa400)%60466176;verulcPjfwe=(veruioPjfwe+60466176)%0x39aa400;return veruicPjfwe*60466176+verulcPjfwe-89;}
 
 
 /**********************************************************
@@ -154,20 +99,49 @@ int is_subscribed(channel_id_t channel) {
     return 0;
 }
 
-/** @brief Prints the boot reference design flag
- *
- *  TODO: Remove this in your final design
-*/
-void boot_flag(void) {
-    char flag[28];
-    char output_buf[128] = {0};
 
-    for (int i = 0; aseiFuengleR[i]; i++) {
-        flag[i] = deobfuscate(aseiFuengleR[i], djFIehjkklIH[i]);
-        flag[i+1] = 0;
+
+int xorArrays(uint8_t *arr1, size_t arr1_len, uint8_t *arr2, size_t arr2_len, u_int8_t* result) {
+
+    // Check if input arrays are valid
+    if (arr1 == NULL || arr2 == NULL || result == NULL) {
+        fprintf(stderr, "Error: Invalid input arrays.\n");
+        return -1;
     }
-    sprintf(output_buf, "Boot Reference Flag: %s\n", flag);
-    print_debug(output_buf);
+
+    for (size_t i = 0; i < 16; i++) {
+        uint8_t byte1 = (i < arr1_len) ? arr1[i] : 0x00; // Use 0x00 if arr1 is shorter
+        uint8_t byte2 = (i < arr2_len) ? arr2[i] : 0x00; // Use 0x00 if arr2 is shorter
+        result[i] = byte1 ^ byte2;
+    }  
+
+    return 0;   
+}
+
+void compute_hash(const unsigned char *data, size_t length, unsigned char *hash) {
+    wc_Sha256 sha256;
+
+    if (wc_InitSha256(&sha256) != 0) {
+        fprintf(stderr, "Failed to initialize SHA-256 context!\n");
+        return; 
+    }
+
+    if (wc_Sha256Update(&sha256, data, length) != 0) {
+        fprintf(stderr, "Failed to update SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    unsigned char full_hash[WC_SHA256_DIGEST_SIZE];
+    if (wc_Sha256Final(&sha256, full_hash) != 0) {
+        fprintf(stderr, "Failed to finalize SHA-256 hash!\n");
+        wc_Sha256Free(&sha256);
+        return; 
+    }
+
+    memcpy(hash, full_hash, 16);
+
+    wc_Sha256Free(&sha256);
 }
 
 
@@ -201,6 +175,119 @@ int list_channels() {
     return 0;
 }
 
+/**
+ * @brief Validates the checksum of the subscription information
+ * 
+ * @param chksm The checksum to be validated
+ * 
+ * @return 0 upon success. -1 if error
+ */
+int validate(uint8_t *chksm, uint8_t *check_sum) {
+    // Validate checksum with comparator value
+    if (memcmp(chksm, check_sum, 20) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+/** @brief Extracts subscription information and checksum from interwoven message.
+ * 
+ *  @param intrwvn_msg A pointer to the beginning of our interwoven subscription information
+ *  @param subscription_info A pointer to the output of the extracted subscription information
+ *  @param chksm A pointer to the output of the extracted checksum
+ * 
+ *  @return 0 upon success. -1 if error
+ */
+int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
+    // Validate intrwvn_msg/output pointers
+    // (Nest for glitch protection)
+    if (intrwvn_msg == NULL) return -1;
+    if (subscription_info == NULL) return -1;
+    if (chksm == NULL) return -1;
+
+
+    // Expecting 48 bytes from interwoven message
+    // 20 bytes for the subscription info (device ID, start timestamp, end timestamp)
+    // 20 bytes for the checksum
+    // 8 bytes for padding (Junk, ignore)
+
+    /*
+        Questions:
+            Another security issue:
+                - As it stands, arguments fed into this function are to be
+                  staticly allocated character arrays stored in stack.
+                  Is this safe?
+    */
+
+    // Alignment issue
+    uint8_t temp_subscription_arr[20];
+
+    // Extract the interwoven message into their respective character arrays
+    for (int i = 0; i < 40; i++) {
+        if (i % 2 == 0) {
+            temp_subscription_arr[i / 2] = intrwvn_msg[i];
+        }
+        else {
+            chksm[i / 2] = intrwvn_msg[i];
+        }
+    }
+
+    // Null-terminate the output strings
+    temp_subscription_arr[20] = '\0';
+    chksm[20] = '\0';
+
+    // Copy the temporary subscription array into the subscription_info struct
+    /*
+        timestamp_t uint64_t
+        decoder_id_t uint32_t
+
+        | decoder_id  | start_timestamp | end_timestamp  |
+        |   4 bytes   |     8 bytes     |    8 bytes     |
+    */
+
+    // Pull individual values from temp_subscription_arr
+    subscription_info->decoder_id = (temp_subscription_arr[3] << 24) + (temp_subscription_arr[2] << 16) + (temp_subscription_arr[1] << 8) + (temp_subscription_arr[0]);
+    subscription_info->start_timestamp = (temp_subscription_arr[4]) + (temp_subscription_arr[5]) + (temp_subscription_arr[6]) + (temp_subscription_arr[7]) + (temp_subscription_arr[8]) + (temp_subscription_arr[9]) + (temp_subscription_arr[10]) + (temp_subscription_arr[11]);
+    subscription_info->end_timestamp = (temp_subscription_arr[12]) + (temp_subscription_arr[13]) + (temp_subscription_arr[14]) + (temp_subscription_arr[15]) + (temp_subscription_arr[16]) + (temp_subscription_arr[17]) + (temp_subscription_arr[18]) + (temp_subscription_arr[19]);
+    
+    return 0;  // Success
+}
+
+
+
+/** @brief Helper function to reset the channel info in subscribed_channels at index i
+ * 
+ *  @param i the index at which to reset channel info
+ * 
+*/
+void reset_channel(int i) {
+    decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
+    decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+    decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+    decoder_status.subscribed_channels[i].active = false;
+}
+
+/** @brief Helper function to check if duplicate channel ids exist which are active
+ * 
+ *  @note Should always return false
+ * 
+ *  @return 0 upon none found, 1 if found duplicate
+*/
+bool found_duplicate_channel_id() {
+    int i;
+    int j;
+    for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
+        for (j = 0; j < MAX_CHANNEL_COUNT; j++) {
+            if (i != j) {
+                if (decoder_status.subscribed_channels[i].id == decoder_status.subscribed_channels[j].id && decoder_status.subscribed_channels[i].active && decoder_status.subscribed_channels[j].active) {
+                    return -1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 
 /** @brief Updates the channel subscription for a subset of channels.
  *
@@ -213,35 +300,118 @@ int list_channels() {
  *
  *  @return 0 upon success.  -1 if error.
 */
-int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update) {
-    int i;
+//                                         this update info will be updated later to be encoded input
+int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
+    //volatile char pad[500] = {0};
+    /*   
+    2. Update subscription 
+        1. Extract first four bytes to get channel ID
+        1.5. Extract rest of encrypted interwoven bytestring
+        2. Retrieve secrets from flash to find channel with given ID
+        3. Use subscription key from corresponding secret_t to decrypt packet
+        4. De-interweave to get concatenated sub info
+        5. Extract sub info
+        5.25 Validate checksum
+        5.5  Check for duplicate channel
+        5.75 Check for emergency channel
+        6. Update sub info
+    */
 
+    channel_id_t channel_id;
+    secret_t *channel_secrets;
+    interwoven_bytes *interwoven_encrypted;
+    interwoven_bytes *interwoven_decrypted;
+    // get iv from packet (last 16 bytes)
+
+    char iv[16];
+    memcpy(iv, &packet->encrypted_packet[52], 16);
+
+    // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
+    //      ciphertext  = 40 bytes interweaved + 8 bytes padding
+
+    // 1.
+    memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
+    // 1.5
+    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
+
+    // 2.
+    read_secrets(channel_id, channel_secrets);
+
+    // 3.
+    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
+
+    // 4. & 5.
+    subscription_update_packet_t *update;
+    update->channel = channel_id;
+
+    uint8_t chksm [20];
+
+    if (extract(interwoven_decrypted, update, chksm) != 0) {
+        STATUS_LED_RED();
+        print_error("Failed to extract\n");
+        return -1;
+    }
+    
+    // Validate the checksum
+    if (!validate(chksm, channel_secrets->check_sum)) {
+         STATUS_LED_RED();
+         print_error("Failed to validate checksum");
+         return -1;
+    }
+
+    // If we find duplicate channel ids (this should not happen) Check before modifying
+    if (found_duplicate_channel_id()) {
+        STATUS_LED_RED();
+        print_error("Channel list should not contain duplicates\n");
+        return -1;
+    }
+
+    // Emergency channel fix
     if (update->channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
     }
 
+    // 6.
+    int i;
+
+    bool modified = false;
     // Find the first empty slot in the subscription array
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
+        
+        // if this channel is the same ID as incoming channel info or it's not an active channel
         if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
-            decoder_status.subscribed_channels[i].active = true;
-            decoder_status.subscribed_channels[i].id = update->channel;
-            decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
-            decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
-            break;
+            // already performed modification && found duplicate channel id
+            if (modified && decoder_status.subscribed_channels[i].id == update->channel) {
+                reset_channel(i);
+            }
+            // already performed modification and found inactive channel 
+            else if (modified) {
+                // don't do anything
+                continue;
+            }
+            // have not performed update
+            else {
+                // set channel status to true
+                decoder_status.subscribed_channels[i].active = true;
+                // set channel id to incoming id
+                decoder_status.subscribed_channels[i].id = update->channel;
+                // set start timestamp
+                decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
+                // set end timestamp
+                decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
+                modified = true;
+            }
+            
         }
     }
 
-    // If we do not have any room for more subscriptions
-    if (i == MAX_CHANNEL_COUNT) {
-        STATUS_LED_RED();
-        print_error("Failed to update subscription - max subscriptions installed\n");
-        return -1;
-    }
+    flash_erase_page(FLASH_STATUS_ADDR);
+    
 
-    flash_simple_erase_page(FLASH_STATUS_ADDR);
-    flash_simple_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+
     // Success message with an empty body
     write_packet(SUBSCRIBE_MSG, NULL, 0);
     return 0;
@@ -254,52 +424,143 @@ int update_subscription(pkt_len_t pkt_len, subscription_update_packet_t *update)
  *
  *  @return 0 if successful.  -1 if data is from unsubscribed channel.
 */
-int decode(pkt_len_t pkt_len, frame_packet_t *new_frame) {
-    char output_buf[128] = {0};
+
+int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
+    //volatile char pad[500] = {0};
+    char output_buf[BUF_LEN] = {0};
     uint16_t frame_size;
-    channel_id_t channel;
 
-    // Frame size is the size of the packet minus the size of non-frame elements
-    frame_size = pkt_len - (sizeof(new_frame->channel) + sizeof(new_frame->timestamp));
-    channel = new_frame->channel;
+    timestamp_t timestamp;
+    timestamp_t timestamp_decrypted;
+    uint8_t ts_prime[C1_LENGTH];
+    uint8_t ts_decrypted[sizeof(timestamp_t)];
+    uint8_t nonce[KEY_SIZE];
+    uint8_t frame_data[FRAME_SIZE];
+    uint8_t c1_key[KEY_SIZE] = {0};
+    uint8_t c2_key[KEY_SIZE] = {0};
 
-    // The reference design doesn't use the timestamp, but you may want to in your design
-    // timestamp_t timestamp = new_frame->timestamp;
+
+    // Get the plain text info from the encrypted frame
+    timestamp = new_frame->timestamp;
+
+    secret_t channel_secrets;
+    read_secrets(new_frame->channel, &channel_secrets);
+
+    // Probably should not use memcpy here
+    // alternative is:
+    // uint8_t* mask_key = channel_secrets->mask_key;
+    uint8_t mask_key[16];
+    memcpy(mask_key, channel_secrets.mask_key, 16);
+    uint8_t message_key[16];
+    memcpy(message_key, channel_secrets.msg_key, 16);
+    uint8_t data_key[16];
+    memcpy(data_key, channel_secrets.data_key, 16);
+
+    channel_id_t channel_id = new_frame->channel;
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    if (is_subscribed(channel)) {
-        print_debug("Subscription Valid\n");
-        /* The reference design doesn't need any extra work to decode, but your design likely will.
-        *  Do any extra decoding here before returning the result to the host. */
-        write_packet(DECODE_MSG, new_frame->data, frame_size);
-        return 0;
-    } else {
+    if (!is_subscribed(channel_id)) {
         STATUS_LED_RED();
         sprintf(
             output_buf,
-            "Receiving unsubscribed channel data.  %u\n", channel);
+            "Receiving unsubscribed channel data.  %u\n", channel_id);
         print_error(output_buf);
+        // print_error("Unsubscribed channel");
+        return -1;
+    }    
+
+    print_debug("Subscription Valid\n");
+
+    // Todo: Decrypt c1 and c2, and validate timestamps
+
+    // Decrypt c1 first
+    
+    // Construct the key for c1
+    // XOR mask key with the timestamp
+    memcpy(c1_key, &timestamp, sizeof(timestamp));
+    if (xorArrays(c1_key, KEY_SIZE, mask_key, KEY_SIZE, c1_key) != 0) {
+        print_error("Failed to XOR c1_key and mask_key\n");
         return -1;
     }
+    // Hash the the XOR result from the previous step
+    compute_hash(c1_key, KEY_SIZE, c1_key);
+
+    // XOR the hash result with message key to get the decryption key for c1
+    if (xorArrays(c1_key, KEY_SIZE, message_key, KEY_SIZE, c1_key) != 0) {
+        print_error("Failed to XOR c1_key and message_key\n");
+        return -1;
+    }
+
+    // Decrypt c1 with the decryption key and get timestamp prime
+    decrypt_sym(new_frame->c1, C1_LENGTH, c1_key, new_frame->iv, ts_prime);
+
+
+    // Extract nonce from timestamp prime
+    memcpy(nonce, ts_prime, 8);
+    memcpy(nonce + 8, ts_prime + 16, 8);
+
+    
+    memcpy(ts_decrypted, ts_prime + 8, sizeof(timestamp_t));
+    timestamp_decrypted = *(timestamp_t*) ts_decrypted;
+
+
+    // Start to decrypt c2
+    // Construct the key for c2
+    // XOR data key with the nounce to get the decryption key for c2
+    if (xorArrays(nonce, 16, data_key, KEY_SIZE, c2_key) != 0) {
+        print_error("Failed to XOR nonce and data_key\n");
+        return -1;
+    }
+
+    // Calculate the length of c2
+    int c2_length = pkt_len - sizeof(channel_id_t) - sizeof(timestamp_t) - sizeof(frame_length_t) - KEY_SIZE - C1_LENGTH;
+
+    // Decrypt c2 with the decryption key and get the frame data
+    memset(frame_data, 0, FRAME_SIZE);
+    decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
+
+
+    // TODO: Validation of Time Stamp Here
+    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
+        update_current_timestamp(channel_id, timestamp);
+    } else {
+        STATUS_LED_RED();
+        print_error("Invalid timestamp");
+    }
+
+
+
+    
+    write_packet(DECODE_MSG, frame_data, new_frame->frame_length);
+    return 0;
 }
 
 /** @brief Initializes peripherals for system boot.
 */
 void init() {
     int ret;
+    NVIC_DisableIRQ(DMA0_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA1_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA2_IRQn);//disable DMA interrupt
+    NVIC_DisableIRQ(DMA3_IRQn);//disable DMA interrupt
 
     // Initialize the flash peripheral to enable access to persistent memory
-    flash_simple_init();
+    flash_init();
 
     // Read starting flash values into our flash status struct
-    flash_simple_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
+    //if (true) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
         *  processes a subscription update, this data will be updated.
         */
         print_debug("First boot.  Setting flash...\n");
+
+        // Generate random flash key
+        generate_key(MXC_AES_128BITS, FLASH_KEY);
+        aes_set_key();
 
         decoder_status.first_boot = FLASH_FIRST_BOOT;
 
@@ -309,15 +570,31 @@ void init() {
             subscription[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
+            subscription[i].id = DEFAULT_CHANNEL_ID;
         }
+
+        subscription[1].start_timestamp = 0;
+        subscription[1].end_timestamp = 64;
+        subscription[1].active = true;
+        subscription[1].id = 3;
 
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
-        flash_simple_erase_page(FLASH_STATUS_ADDR);
-        flash_simple_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    }
+        flash_erase_page(FLASH_STATUS_ADDR);
+        MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
 
+
+        /** TODO: Call generate secrets to load tachi keys */
+
+        init_secret();
+        
+    } else {// If not first boot
+        aes_set_key();
+    }
+    
+
+    
     // Initialize the uart peripheral to enable serial I/O
     ret = uart_init();
     if (ret < 0) {
@@ -325,11 +602,15 @@ void init() {
         // if uart fails to initialize, do not continue to execute
         while (1);
     }
+
+    // Last thing we do is set up MPU to set up read/write accesses
+    mpu_setup();
+    __enable_irq();
 }
 
-/* Code between this #ifdef and the subsequent #endif will
-*  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
-*  the projectk.mk file. */
+// /* Code between this #ifdef and the subsequent #endif will
+// *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
+// *  the projectk.mk file. */
 #ifdef CRYPTO_EXAMPLE
 void crypto_example(void) {
     // Example of how to utilize included simple_crypto.h
@@ -342,37 +623,84 @@ void crypto_example(void) {
     uint8_t hash_out[HASH_SIZE];
     uint8_t decrypted[BLOCK_SIZE];
 
+
+    uint8_t iv[BLOCK_SIZE] = {1};
+
     char output_buf[128] = {0};
 
-    // Zero out the key
+    // // Zero out the key
     bzero(key, BLOCK_SIZE);
 
-    // Encrypt example data and print out
-    encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, ciphertext);
-    print_debug("Encrypted data: \n");
-    print_hex_debug(ciphertext, BLOCK_SIZE);
+    // // Encrypt example data and print out
+    // encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, , ciphertext);
+    // print_debug("Encrypted data: \n");
+    // print_hex_debug(ciphertext, BLOCK_SIZE);
 
-    // Hash example encryption results
-    hash(ciphertext, BLOCK_SIZE, hash_out);
+    // // Hash example encryption results
+    // hash(ciphertext, BLOCK_SIZE, hash_out);
 
-    // Output hash result
-    print_debug("Hash result: \n");
-    print_hex_debug(hash_out, HASH_SIZE);
+    // // Output hash result
+    // print_debug("Hash result: \n");
+    // print_hex_debug(hash_out, HASH_SIZE);
 
-    // Decrypt the encrypted message and print out
-    decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // // Decrypt the encrypted message and print out
+    decrypt_sym(ciphertext, BLOCK_SIZE, key, iv, decrypted);
     sprintf(output_buf, "Decrypted message: %s\n", decrypted);
     print_debug(output_buf);
 }
 #endif  //CRYPTO_EXAMPLE
+
+
+void flash_test() {
+    char output_buf[BUF_LEN] = {0};
+    uint8_t data[16] = "Hello World!";
+    uint8_t read_data[16] = {0};
+
+    //flash_erase_page(FLASH_STATUS_ADDR);
+    //flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
+    //flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
+
+    //sprintf(output_buf, "Flash test: %s\n", read_data);
+    //print_debug(output_buf);
+
+    char c;
+    int status;
+    while (1) {
+        c = uart_readbyte(&status);
+        if (c == 'w') {
+            flash_erase_page(FLASH_KEY - MXC_FLASH_PAGE_SIZE);
+            flash_write(FLASH_KEY - MXC_FLASH_PAGE_SIZE, data, sizeof(data));
+            sprintf(output_buf, "Wrote to flash\n", data);
+            print_debug(output_buf);
+        } else if (c == 'r') {
+            flash_read(FLASH_KEY - MXC_FLASH_PAGE_SIZE, read_data, sizeof(read_data));
+            sprintf(output_buf, "Flash test: %s\n", read_data);
+            print_debug(output_buf);
+        }
+        //uart_writebyte(c);
+    }
+}
+
+
+void uart_test() {
+    char c;
+    int status;
+    while (1) {
+        c = uart_readbyte(&status);
+        uart_writebyte(c);
+    }
+}
+
 
 /**********************************************************
  *********************** MAIN LOOP ************************
  **********************************************************/
 
 int main(void) {
-    char output_buf[128] = {0};
-    uint8_t uart_buf[100];
+
+    char output_buf[BUF_LEN] = {0};
+    uint8_t uart_buf[BUF_LEN]; // longest possible packet is 124 bytes
+
     msg_type_t cmd;
     int result;
     uint16_t pkt_len;
@@ -382,21 +710,27 @@ int main(void) {
 
     print_debug("Decoder Booted!\n");
 
-    #ifdef CRYPTO_EXAMPLE
+    // #ifdef CRYPTO_EXAMPLE
 
-    // print_debug("\n\nCrypto Example\n");
+    // // print_debug("\n\nCrypto Example\n");
 
-    // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
-    // uint8_t key[KEY_SIZE];
-    // uint8_t decrypted[BLOCK_SIZE];
-    // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-    // print_debug(decrypted);
+    // // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
+    // // uint8_t key[KEY_SIZE];
+    // // uint8_t decrypted[BLOCK_SIZE];
+    // // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
+    // // print_debug(decrypted);
 
-    // print_debug("\n\n");
+    // // print_debug("\n\n");
 
-    crypto_example();
+    // crypto_example();
 
-    #endif
+    // #endif
+
+
+    // flash_test();
+    //uart_test();
+
+
 
     // process commands forever
     while (1) {
@@ -408,7 +742,8 @@ int main(void) {
 
         if (result < 0) {
             STATUS_LED_ERROR();
-            print_error("Failed to receive cmd from host\n");
+            print_error("Failed to receive cmd from host. Flushing UART...\n");
+            uart_flush(); // Flush UART after recieving a bad packet
             continue;
         }
 
@@ -427,20 +762,24 @@ int main(void) {
 
             // Print the boot flag
             // TODO: Remove this from your design
-            boot_flag();
+            // #ifdef CRYPTO_EXAMPLE
+            //     // Run the crypto example
+            //     // TODO: Remove this from your design
+            //     crypto_example();
+            // #endif // CRYPTO_EXAMPLE
             list_channels();
             break;
 
         // Handle decode command
         case DECODE_MSG:
             STATUS_LED_PURPLE();
-            decode(pkt_len, (frame_packet_t *)uart_buf);
+            decode(pkt_len, (encrypted_frame_packet_t *)uart_buf);
             break;
 
         // Handle subscribe command
         case SUBSCRIBE_MSG:
             STATUS_LED_YELLOW();
-            update_subscription(pkt_len, (subscription_update_packet_t *)uart_buf);
+            update_subscription(pkt_len, (encrypted_update_packet *)uart_buf);
             break;
 
         // Handle bad command
