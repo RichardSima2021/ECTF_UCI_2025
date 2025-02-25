@@ -548,9 +548,12 @@ void init() {
     // Initialize the flash peripheral to enable access to persistent memory
     flash_init();
 
+    uint32_t boot_flag;
+
     // Read starting flash values into our flash status struct
     MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    if (decoder_status.first_boot != FLASH_FIRST_BOOT) {
+    MXC_FLC_Read(BOOT_FLAG_ADDR, &boot_flag, sizeof(uint32_t));
+    if (boot_flag != FLASH_FIRST_BOOT) {
     //if (true) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -562,7 +565,7 @@ void init() {
         generate_key(MXC_AES_128BITS, FLASH_KEY);
         aes_set_key();
 
-        decoder_status.first_boot = FLASH_FIRST_BOOT;
+        boot_flag = FLASH_FIRST_BOOT;
 
         channel_status_t subscription[MAX_CHANNEL_COUNT];
 
@@ -582,7 +585,10 @@ void init() {
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
+        flash_write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
+
+        flash_erase_page(BOOT_FLAG_ADDR);
+        MXC_FLC_Write(BOOT_FLAG_ADDR, sizeof(uint32_t), &boot_flag);
 
 
         /** TODO: Call generate secrets to load tachi keys */
