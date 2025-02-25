@@ -346,6 +346,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     update.channel = packet->channel;
 
     uint8_t chksm [20];
+    memset(chksm, 0, 20);
 
     if (extract(interwoven_decrypted, &update, chksm) != 0) {
         STATUS_LED_RED();
@@ -354,7 +355,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
     
     // Validate the checksum
-    if (!validate(chksm, &channel_secrets.check_sum)) {
+    if (validate(chksm, &channel_secrets.check_sum) == -1) {
          STATUS_LED_RED();
          print_error("Failed to validate checksum");
          return -1;
