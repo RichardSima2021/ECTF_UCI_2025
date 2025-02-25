@@ -523,10 +523,18 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // TODO: Validation of Time Stamp Here
     if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-        update_current_timestamp(channel_id, timestamp);
+        print_debug("Valid timestamp");
+        // update_current_timestamp(channel_id, timestamp);
+        sprintf(
+            output_buf,
+            "Valid timestamp  %u\n", timestamp_decrypted);
+        print_debug(output_buf);
     } else {
         STATUS_LED_RED();
-        print_error("Invalid timestamp");
+        sprintf(
+            output_buf,
+            "Invalid timestamp  %u\n", timestamp_decrypted);
+        print_error(output_buf);
     }
 
 
