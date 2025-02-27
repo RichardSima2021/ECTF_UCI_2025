@@ -88,6 +88,7 @@ flash_entry_t decoder_status;
 int is_subscribed(channel_id_t channel) {
     // Check if this is an emergency broadcast message
 
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     
 
     if (channel == EMERGENCY_CHANNEL) {
@@ -161,6 +162,8 @@ int list_channels() {
     pkt_len_t len;
 
     resp.n_channels = 0;
+
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     for (uint32_t i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].active) {
@@ -264,10 +267,12 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
  * 
 */
 void reset_channel(int i) {
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
+    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 }
 
 /** @brief Helper function to check if duplicate channel ids exist which are active

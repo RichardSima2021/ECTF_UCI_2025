@@ -38,9 +38,10 @@ int extract_channel_idx(int channel_id) {
 int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
     print_debug("Checking increasing");
     //extarct the subscription information
-    request_privilege();
-    MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    drop_privilege();
+    // request_privilege();
+    // MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    // drop_privilege();
+    
     //2. check if the timestamp is strictly greater than that
     int idx;
     idx = extract_channel_idx(channel_id);
@@ -87,9 +88,27 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
     return 0;
 }
 
+int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
+    //this function assumes that decoder_status has already been extracted from the flash
+    int idx=extract_channel_idx(channel_id);
+    if(idx == -1){
+        return 0;
+    }
+    
+    decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
+    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
+    // request_privilege();
+    // MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
+    // drop_privilege();
+
+    return 0;   // Idk if this is a flag used later
+}
 
 int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
+
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+
     // returns 1 if timestamp is valid, 0 otherwise
     if (check_two_timestamp(plaintext_ts, extracted_timestamp)) {
         print_debug("Two timestamps match");
@@ -110,19 +129,3 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
 }
 
 
-int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
-    //this function assumes that decoder_status has already been extracted from the flash
-    int idx=extract_channel_idx(channel_id);
-    if(idx == -1){
-        return 0;
-    }
-    
-    decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
-    // flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-
-    request_privilege();
-    MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
-    drop_privilege();
-
-    return 0;   // Idk if this is a flag used later
-}
