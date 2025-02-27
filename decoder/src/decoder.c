@@ -585,7 +585,7 @@ void init() {
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
-        flash_write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
+        flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
         flash_erase_page(BOOT_FLAG_ADDR);
         MXC_FLC_Write(BOOT_FLAG_ADDR, sizeof(uint32_t), &boot_flag);
