@@ -40,7 +40,7 @@ int extract_channel_idx(int channel_id){
 int check_increasing(int channel_id, timestamp_t extracted_timestamp){
 
     //extarct the subscription information
-    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     //2. check if the timestamp is strictly greater than that
     int idx=extract_channel_idx(channel_id);
@@ -95,6 +95,6 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
     }
     
     decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
-    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     return 0;   // Idk if this is a flag used later
 }
