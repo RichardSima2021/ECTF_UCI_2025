@@ -38,9 +38,6 @@
 
 
 
-
-
-
 /**********************************************************
  ********************* STATE MACROS ***********************
  **********************************************************/
@@ -54,9 +51,12 @@
 //The flash read write key
 #define FLASH_KEY ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (4 * MXC_FLASH_PAGE_SIZE)) // we put it on 4th page, in what is no access region
 
+// Address of first boot flag
+#define BOOT_FLAG_ADDR ((MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE) - (5 * MXC_FLASH_PAGE_SIZE))
+
 /**********************************************************
  *********** COMMUNICATION PACKET DEFINITIONS *************
- **********************************************************/
+ **********************v ************************************/
 
 #pragma pack(push, 1) // Tells the compiler not to pad the struct members
 // for more information on what struct padding does, see:
@@ -123,7 +123,7 @@ typedef struct {
 } channel_status_t;
 
 typedef struct {
-    uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
+    // uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
     channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
 } flash_entry_t;
 
