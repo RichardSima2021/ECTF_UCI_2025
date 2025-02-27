@@ -7,12 +7,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int update_current_timestamp(int channel_id, timestamp_t new_timestamp);
 void read_secrets(int channel_id, secret_t* secret_buffer);
 
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 0x14) // placeholder
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 0x14) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 0x26) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 0x32) // placeholder
 
 #define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 0x32) // TODO, placeholder currently
-#define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 0x5) // TODO, placeholder
-#define PRIVILEGED_WRITE_IN_UPDATE_CURRENT_TIMESTAMP_ADDRESS (update_current_timestamp + 0x5) // TODO, placeholder
+#define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 0x16A) // TODO, placeholder
+#define PRIVILEGED_WRITE_IN_UPDATE_CURRENT_TIMESTAMP_ADDRESS (update_current_timestamp + 0x26) // TODO, placeholder
 
 /**
  * @brief SVC Handler
@@ -21,7 +21,7 @@ void read_secrets(int channel_id, secret_t* secret_buffer);
 void SVC_Handler(void) {
     __set_CONTROL(__get_CONTROL() & ~0x1);
     __ISB();
-}
+} 
 /**
  * @brief request privilege
  * @details This function checks if the return address is the flash_privileged_read function 
@@ -29,9 +29,11 @@ void SVC_Handler(void) {
  */
 void request_privilege() {
     void* return_addr = __builtin_return_address(0);
-    
-    // if(return_addr0 === flash_privile ged_read + FLASH_PRIVILEGED_READ_OFFSET )
-    __asm("svc #0");
+
+    if(return_addr == REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET ||
+       return_addr == REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
+            __asm("svc #0");
+       }
 }
 
 
@@ -112,9 +114,13 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
         request_privilege();
     }
 
+    uint32_t control = __get_CONTROL();
+    printf("0x%.8x\n", control);
+
     flash_read(address, buffer, len);
     drop_privilege();
 }
+
 /**
  * @brief write to flash in privileged mode
  * @details if the return address is correct, switch to privileged mode, if not crash, if privilege mode is enabled,
