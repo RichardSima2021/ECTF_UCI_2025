@@ -90,6 +90,7 @@ int is_subscribed(channel_id_t channel) {
     if (channel == EMERGENCY_CHANNEL) {
         return 1;
     }
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Check if the decoder has has a subscription
     for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == channel && decoder_status.subscribed_channels[i].active) {
@@ -158,6 +159,8 @@ int list_channels() {
     pkt_len_t len;
 
     resp.n_channels = 0;
+
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     for (uint32_t i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].active) {
@@ -261,6 +264,7 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
  * 
 */
 void reset_channel(int i) {
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
@@ -274,6 +278,7 @@ void reset_channel(int i) {
  *  @return 0 upon none found, 1 if found duplicate
 */
 bool found_duplicate_channel_id() {
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     int i;
     int j;
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
@@ -368,6 +373,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // 6.
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     bool modified = false;
     int active_channel = 0;
@@ -465,7 +471,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    if (!is_subscribed(channel_id)) {
+    if (is_subscribed(channel_id) == 0) {
         STATUS_LED_RED();
         sprintf(
             output_buf,
@@ -527,7 +533,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
 
     // TODO: Validation of Time Stamp Here
-    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
+    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted) != 0) {
         update_current_timestamp(channel_id, timestamp);
     } else {
         STATUS_LED_RED();
