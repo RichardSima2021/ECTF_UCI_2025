@@ -11,6 +11,7 @@
 extern flash_entry_t decoder_status;
 
 void clean_up(){
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     memset(&decoder_status, 0, sizeof(flash_entry_t));
 }
 
@@ -24,6 +25,7 @@ int check_two_timestamp(timestamp_t plaintext_ts, timestamp_t extracted_timestam
 
 //helper function, extract the index corresponding to the channel id.
 int extract_channel_idx(int channel_id) {
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == channel_id) {
             if (decoder_status.subscribed_channels[i].active) {
@@ -50,6 +52,8 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
         print_error("Didn't find channel");
         return 0;
     }
+
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     
     char output_buf[BUF_LEN] = {0};
@@ -78,7 +82,9 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
     int idx = extract_channel_idx(channel_id);    
     if (idx == -1) {
         return 0;
-    }   
+    }
+
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     
     if ((extracted_timestamp > decoder_status.subscribed_channels[idx].start_timestamp)) {
         if ((extracted_timestamp < decoder_status.subscribed_channels[idx].end_timestamp)) {
@@ -94,6 +100,8 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
     if(idx == -1){
         return 0;
     }
+
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     
     decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
@@ -106,8 +114,6 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
 }
 
 int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
-
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     // returns 1 if timestamp is valid, 0 otherwise
     if (check_two_timestamp(plaintext_ts, extracted_timestamp)) {
