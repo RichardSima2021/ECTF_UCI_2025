@@ -119,6 +119,7 @@ typedef struct {
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;
     timestamp_t current_timestamp;
+    bool fresh;
 } channel_status_t;
 
 typedef struct {

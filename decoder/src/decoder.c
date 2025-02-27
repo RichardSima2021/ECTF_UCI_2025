@@ -87,6 +87,9 @@ flash_entry_t decoder_status;
 */
 int is_subscribed(channel_id_t channel) {
     // Check if this is an emergency broadcast message
+
+    
+
     if (channel == EMERGENCY_CHANNEL) {
         return 1;
     }
@@ -579,12 +582,16 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
+            subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+            subscription[i].fresh = false;
         }
 
         subscription[1].start_timestamp = 0;
         subscription[1].end_timestamp = 64;
         subscription[1].active = true;
         subscription[1].id = 3;
+        subscription[1].current_timestamp = 0;
+        subscription[1].fresh = true;
 
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
