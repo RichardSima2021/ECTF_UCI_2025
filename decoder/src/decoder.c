@@ -366,7 +366,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // Emergency channel fix
-    if (&update.channel == EMERGENCY_CHANNEL) {
+    if (update.channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
@@ -381,9 +381,9 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
-        if (decoder_status.subscribed_channels[i].id == &update.channel || !decoder_status.subscribed_channels[i].active) {
+        if (decoder_status.subscribed_channels[i].id == update.channel || !decoder_status.subscribed_channels[i].active) {
             // already performed modification && found duplicate channel id
-            if (modified && decoder_status.subscribed_channels[i].id == &update.channel) {
+            if (modified && decoder_status.subscribed_channels[i].id == update.channel) {
                 reset_channel(i);
             }
             // already performed modification and found inactive channel 
@@ -396,11 +396,11 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 // set channel status to true
                 decoder_status.subscribed_channels[i].active = true;
                 // set channel id to incoming id
-                decoder_status.subscribed_channels[i].id = &update.channel;
+                decoder_status.subscribed_channels[i].id = update.channel;
                 // set start timestamp
-                decoder_status.subscribed_channels[i].start_timestamp = &update.start_timestamp;
+                decoder_status.subscribed_channels[i].start_timestamp = update.start_timestamp;
                 // set end timestamp
-                decoder_status.subscribed_channels[i].end_timestamp = &update.end_timestamp;
+                decoder_status.subscribed_channels[i].end_timestamp = update.end_timestamp;
                 modified = true;
                 active_channel++;
             }
