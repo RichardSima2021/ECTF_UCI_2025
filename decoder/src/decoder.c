@@ -412,7 +412,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // If we do not have any room for more subscriptions
-    if (active_channel == MAX_CHANNEL_COUNT) {
+    if (active_channel == MAX_CHANNEL_COUNT && !modified) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - max subscriptions installed\n");
         return -1;
