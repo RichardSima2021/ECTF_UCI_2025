@@ -72,7 +72,9 @@ typedef struct{
 } encrypted_frame_packet_t;
 
 typedef struct {
-    char encrypted_packet[68];
+    channel_id_t channel;
+    uint8_t interwoven_bytes[48];
+    uint8_t iv[KEY_SIZE];
 }   encrypted_update_packet;
 
 typedef uint8_t interwoven_bytes[48];
