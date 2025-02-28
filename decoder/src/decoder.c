@@ -87,10 +87,6 @@ flash_entry_t decoder_status;
 */
 int is_subscribed(channel_id_t channel) {
     // Check if this is an emergency broadcast message
-
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    
-
     if (channel == EMERGENCY_CHANNEL) {
         return 1;
     }
@@ -271,7 +267,10 @@ void reset_channel(int i) {
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+    decoder_status.subscribed_channels[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
+    decoder_status.subscribed_channels[i].fresh = false;
+    flash_erase_page(FLASH_STATUS_ADDR);
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 }
 
@@ -405,6 +404,10 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 decoder_status.subscribed_channels[i].start_timestamp = update.start_timestamp;
                 // set end timestamp
                 decoder_status.subscribed_channels[i].end_timestamp = update.end_timestamp;
+                // set current timestamp
+                decoder_status.subscribed_channels[i].current_timestamp = 0;
+                // set fresh flag
+                decoder_status.subscribed_channels[i].fresh = true;
                 modified = true;
                 active_channel++;
             }
@@ -424,8 +427,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);
-    
-
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     // Success message with an empty body
@@ -601,13 +602,6 @@ void init() {
             subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].fresh = false;
         }
-
-        subscription[1].start_timestamp = 0;
-        subscription[1].end_timestamp = 64;
-        subscription[1].active = true;
-        subscription[1].id = 3;
-        subscription[1].current_timestamp = 0;
-        subscription[1].fresh = true;
 
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));

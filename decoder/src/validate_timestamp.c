@@ -55,13 +55,7 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
 
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
-    
-    char output_buf[BUF_LEN] = {0};
     int current_timestamp = decoder_status.subscribed_channels[idx].current_timestamp;
-    sprintf(
-            output_buf,
-            "Got current timestamp:  %u\n", current_timestamp);
-        print_debug(output_buf);
 
     if (decoder_status.subscribed_channels[idx].fresh) {
         // if this channel has not received anything yet, then current timestamp can = extracted timestamp
@@ -103,7 +97,9 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
 
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     
-    decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
+    decoder_status.subscribed_channels[idx].current_timestamp = new_timestamp;
+    decoder_status.subscribed_channels[idx].fresh = false;
+    flash_erase_page(FLASH_STATUS_ADDR);
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     // request_privilege();
