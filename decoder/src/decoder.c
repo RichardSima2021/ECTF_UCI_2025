@@ -27,7 +27,7 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "secret.h"
+#include "./../secrets/secret.h"
 #include "validate_timestamp.h"
 
 
@@ -90,6 +90,7 @@ int is_subscribed(channel_id_t channel) {
     if (channel == EMERGENCY_CHANNEL) {
         return 1;
     }
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Check if the decoder has has a subscription
     for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == channel && decoder_status.subscribed_channels[i].active) {
@@ -158,6 +159,7 @@ int list_channels() {
     pkt_len_t len;
 
     resp.n_channels = 0;
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     for (uint32_t i = 0; i < MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].active) {
@@ -198,7 +200,7 @@ int validate(uint8_t *chksm, uint8_t *check_sum) {
  * 
  *  @return 0 upon success. -1 if error
  */
-int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
+int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
     // Validate intrwvn_msg/output pointers
     // (Nest for glitch protection)
     if (intrwvn_msg == NULL) return -1;
@@ -261,10 +263,15 @@ int extract(interwoven_bytes *intrwvn_msg, subscription_update_packet_t *subscri
  * 
 */
 void reset_channel(int i) {
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+    decoder_status.subscribed_channels[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
+    decoder_status.subscribed_channels[i].fresh = false;
+    flash_erase_page(FLASH_STATUS_ADDR);
+    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 }
 
 /** @brief Helper function to check if duplicate channel ids exist which are active
@@ -274,6 +281,7 @@ void reset_channel(int i) {
  *  @return 0 upon none found, 1 if found duplicate
 */
 bool found_duplicate_channel_id() {
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     int i;
     int j;
     for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
@@ -317,73 +325,68 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         6. Update sub info
     */
 
-    channel_id_t channel_id;
-    secret_t *channel_secrets;
-    interwoven_bytes *interwoven_encrypted;
-    interwoven_bytes *interwoven_decrypted;
-    // get iv from packet (last 16 bytes)
+    secret_t channel_secrets;
+    uint8_t interwoven_decrypted[48];
+    memset(interwoven_decrypted, 0, 48);
+    subscription_update_packet_t update;
 
-    char iv[16];
-    memcpy(iv, &packet->encrypted_packet[52], 16);
+    update.channel = 0;
+    update.decoder_id = 0;
+    update.end_timestamp = 0;
+    update.start_timestamp = 0;
 
     // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
     //      ciphertext  = 40 bytes interweaved + 8 bytes padding
 
-    // 1.
-    memcpy(&channel_id, packet->encrypted_packet, sizeof(channel_id_t));
-    // 1.5
-    memcpy(&interwoven_encrypted, packet->encrypted_packet + sizeof(channel_id_t), sizeof(interwoven_encrypted));
+    read_secrets(packet->channel, &channel_secrets);
 
-    // 2.
-    read_secrets(channel_id, channel_secrets);
+    decrypt_sym(packet->interwoven_bytes, 48, &channel_secrets.subscription_key, packet->iv, interwoven_decrypted);
 
-    // 3.
-    decrypt_sym(&interwoven_encrypted, 48, channel_secrets->subscription_key, iv, &interwoven_decrypted);
 
-    // 4. & 5.
-    subscription_update_packet_t *update;
-    update->channel = channel_id;
+    update.channel = packet->channel;
 
     uint8_t chksm [20];
+    memset(chksm, 0, 20);
 
-    if (extract(interwoven_decrypted, update, chksm) != 0) {
+    if (extract(interwoven_decrypted, &update, chksm) != 0) {
         STATUS_LED_RED();
         print_error("Failed to extract\n");
         return -1;
     }
     
     // Validate the checksum
-    if (!validate(chksm, channel_secrets->check_sum)) {
+    if (validate(chksm, &channel_secrets.check_sum) == -1) {
          STATUS_LED_RED();
          print_error("Failed to validate checksum");
          return -1;
     }
 
     // If we find duplicate channel ids (this should not happen) Check before modifying
-    if (found_duplicate_channel_id()) {
+    if (found_duplicate_channel_id() == -1) {
         STATUS_LED_RED();
         print_error("Channel list should not contain duplicates\n");
         return -1;
     }
 
     // Emergency channel fix
-    if (update->channel == EMERGENCY_CHANNEL) {
+    if (update.channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
         return -1;
     }
 
     // 6.
-    int i;
+    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     bool modified = false;
+    int active_channel = 0;
     // Find the first empty slot in the subscription array
-    for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
+    for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
-        if (decoder_status.subscribed_channels[i].id == update->channel || !decoder_status.subscribed_channels[i].active) {
+        if (decoder_status.subscribed_channels[i].id == update.channel || !decoder_status.subscribed_channels[i].active) {
             // already performed modification && found duplicate channel id
-            if (modified && decoder_status.subscribed_channels[i].id == update->channel) {
+            if (modified && decoder_status.subscribed_channels[i].id == update.channel) {
                 reset_channel(i);
             }
             // already performed modification and found inactive channel 
@@ -396,20 +399,34 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 // set channel status to true
                 decoder_status.subscribed_channels[i].active = true;
                 // set channel id to incoming id
-                decoder_status.subscribed_channels[i].id = update->channel;
+                decoder_status.subscribed_channels[i].id = update.channel;
                 // set start timestamp
-                decoder_status.subscribed_channels[i].start_timestamp = update->start_timestamp;
+                decoder_status.subscribed_channels[i].start_timestamp = update.start_timestamp;
                 // set end timestamp
-                decoder_status.subscribed_channels[i].end_timestamp = update->end_timestamp;
+                decoder_status.subscribed_channels[i].end_timestamp = update.end_timestamp;
+                // set current timestamp
+                decoder_status.subscribed_channels[i].current_timestamp = 0;
+                // set fresh flag
+                decoder_status.subscribed_channels[i].fresh = true;
                 modified = true;
+                active_channel++;
             }
             
         }
+        else if(decoder_status.subscribed_channels[i].active){
+            active_channel++;
+        }
+    }
+
+    // If we do not have any room for more subscriptions
+    // And there was no modification because all channels were active
+    if (active_channel == MAX_CHANNEL_COUNT && !modified) {
+        STATUS_LED_RED();
+        print_error("Failed to update subscription - max subscriptions installed\n");
+        return -1;
     }
 
     flash_erase_page(FLASH_STATUS_ADDR);
-    
-
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     // Success message with an empty body
@@ -460,7 +477,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // Check that we are subscribed to the channel...
     print_debug("Checking subscription\n");
-    if (!is_subscribed(channel_id)) {
+    if (is_subscribed(channel_id) == 0) {
         STATUS_LED_RED();
         sprintf(
             output_buf,
@@ -523,10 +540,18 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // TODO: Validation of Time Stamp Here
     if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-        update_current_timestamp(channel_id, timestamp);
+        print_debug("Valid timestamp");
+        // update_current_timestamp(channel_id, timestamp);
+        sprintf(
+            output_buf,
+            "Valid timestamp  %u\n", timestamp_decrypted);
+        print_debug(output_buf);
     } else {
         STATUS_LED_RED();
-        print_error("Invalid timestamp");
+        sprintf(
+            output_buf,
+            "Invalid timestamp  %u\n", timestamp_decrypted);
+        print_error(output_buf);
     }
 
 
@@ -574,12 +599,9 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
+            subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+            subscription[i].fresh = false;
         }
-
-        subscription[1].start_timestamp = 0;
-        subscription[1].end_timestamp = 64;
-        subscription[1].active = true;
-        subscription[1].id = 3;
 
         // Write the starting channel subscriptions into flash.
         memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
@@ -735,6 +757,10 @@ int main(void) {
 
     // flash_test();
     //uart_test();
+
+    // uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x12, 0x39, 0x99, 0xBD, 0x27, 0x78, 0x26, 0xC0, 0xCB, 0x9F, 0x93, 0xB9, 0x27, 0x3B, 0x4B, 0x47, 0xDA, 0x5F, 0xBE, 0xE4, 0x3D, 0xEB, 0x81, 0x6A, 0x3B, 0x65, 0x99, 0xF0, 0x06, 0x4E, 0x27, 0x8D, 0xDA, 0xAE, 0x7E, 0x12, 0x1D, 0xBA, 0xE9, 0xD5, 0x25, 0x9C, 0x5E, 0x5A, 0x32, 0x65, 0x82, 0x28, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 };
+    
+    // update_subscription(68, (encrypted_update_packet *)data);
 
 
 
