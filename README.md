@@ -181,7 +181,7 @@ timestamp of 32, and an end timestamp of 128 for channel 1.
 #### Linux and PowerShell
 
 ```bash
-python -m ectf25_design.gen_subscription secrets/secrets.json subscription.bin 0xDEADBEEF 32 128 1
+python -m ectf25_design.gen_subscription secrets/secrets.json subscription.bin 0xDEADBEEF $(date +%s) $(($(date +%s) +26000000)) 1
 ```
 
 ## Flashing
