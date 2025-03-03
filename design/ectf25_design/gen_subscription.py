@@ -116,8 +116,8 @@ def encrypt(interwoven_bytestring, secrets, channel):
     #print("padded length: ", len(data))
     #subscription_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     subscription_key = bytes.fromhex(get_channel_key(channel, secrets)['subscription_key'])
-    # iv = secret_gen.token_bytes(16)
-    iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
+    iv = secret_gen.token_bytes(16)
+    # iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
 
     aes = AES.new(subscription_key, AES.MODE_CBC, iv)
     cipher = aes.encrypt(data)
