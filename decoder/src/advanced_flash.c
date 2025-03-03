@@ -11,7 +11,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int check_increasing(int channel_id, timestamp_t extracted_timestamp);
 
 
-#define READ_SECRETS_IN_DECODE_ADDRESS (decode + 80) // placeholder, change byte val
+#define READ_SECRETS_IN_DECODE_ADDRESS (decode + 54) // placeholder, change byte val
 #define READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 0x24) // placeholder, change byte val
 #define READ_SECRETS_IN_CHECK_INCREASING_ADDRESS (check_increasing + 0x14) // placeholder, change byte val
 

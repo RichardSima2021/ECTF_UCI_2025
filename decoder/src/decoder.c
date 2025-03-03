@@ -634,6 +634,7 @@ void init() {
     // Last thing we do is set up MPU to set up read/write accesses
     mpu_setup();
     __enable_irq();
+    drop_privilege();
 }
 
 // /* Code between this #ifdef and the subsequent #endif will

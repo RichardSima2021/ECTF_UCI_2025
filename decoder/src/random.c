@@ -71,7 +71,7 @@ void Random_Delay(){
     int i = RandomInt();
     i &= 0x7FFFFFFF;
     int j  = i%DELAY_LIMIT;
-    printf("Random Delay: %d\n", j);
+    // printf("Random Delay: %d\n", j);
     MXC_Delay(j);
 }
 

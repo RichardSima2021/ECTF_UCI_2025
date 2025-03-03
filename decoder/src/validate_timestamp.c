@@ -131,29 +131,14 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
 }
 
 
-<<<<<<< HEAD
-int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
-    //this function assumes that decoder_status has already been extracted from the flash
-    int idx=extract_channel_idx(channel_id);
-    if(idx==-1){
-        return 0;
-    }
+// int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
+//     //this function assumes that decoder_status has already been extracted from the flash
+//     int idx=extract_channel_idx(channel_id);
+//     if(idx==-1){
+//         return 0;
+//     }
     
-    decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
-    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    return 0;   // Idk if this is a flag used later
-}
-||||||| 012e615
-int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
-    //this function assumes that decoder_status has already been extracted from the flash
-    int idx=extract_channel_idx(channel_id);
-    if(idx==-1){
-        return 0;
-    }
-    
-    decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
-    flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    return 0;   // Idk if this is a flag used later
-}
-=======
->>>>>>> debug-validate-timestamp
+//     decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
+//     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+//     return 0;   // Idk if this is a flag used later
+// }
