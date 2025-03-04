@@ -13,7 +13,7 @@ Copyright: Copyright (c) 2025 The MITRE Corporation
 import argparse
 import json
 import os
-from design.ectf25_design import generate_secret_h #as generate_secret_h
+from ectf25_design import generate_secret_h #as generate_secret_h
 from pathlib import Path
 
 import secrets as secret_gen
