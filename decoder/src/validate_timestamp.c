@@ -17,14 +17,6 @@ void clean_up(){
 }
 
 int check_two_timestamp(timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
-
-    char output_buf[BUF_LEN] = {0};
-
-    sprintf(
-        output_buf,
-        "Plaintext_ts: %u; extracted_ts: %u", plaintext_ts, extracted_timestamp);
-    print_debug(output_buf);
-
     //Encoded frame looks like this: Channelid || Timestamp || C1 || C2 
 
     // Compare timestamps, return 1 if they match, 0 if not
@@ -46,13 +38,6 @@ int extract_channel_idx(int channel_id) {
 
 
 int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
-    print_debug("Checking increasing");
-    //extarct the subscription information
-    // request_privilege();
-    // MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    // drop_privilege();
-    
-    //2. check if the timestamp is strictly greater than that
     int idx;
     idx = extract_channel_idx(channel_id);
     if (idx == -1) {
@@ -62,13 +47,6 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
     }
 
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-
-    char output_buf[BUF_LEN] = {0};
-
-        sprintf(
-            output_buf,
-            "Extracted timestamp: %u; current timestamp: %u", extracted_timestamp, current_timestamp);
-        print_debug(output_buf);
 
     if (decoder_status.subscribed_channels[idx].fresh) {
         // if this channel has not received anything yet, then current timestamp can = extracted timestamp
@@ -93,13 +71,6 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
 
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
-    char output_buf[BUF_LEN] = {0};
-
-    sprintf(
-        output_buf,
-        "Extracted timestamp: %u; Channel start: %u; Channel end: %u", extracted_timestamp, decoder_status.subscribed_channels[idx].start_timestamp, decoder_status.subscribed_channels[idx].end_timestamp);
-    print_debug(output_buf);
-
     if ((extracted_timestamp >= decoder_status.subscribed_channels[idx].start_timestamp)) {
         if ((extracted_timestamp <= decoder_status.subscribed_channels[idx].end_timestamp)) {
             return 1;
@@ -116,24 +87,14 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
         return 0;
     }
 
-    char output_buf[BUF_LEN] = {0};
-
-    sprintf(
-        output_buf,
-        "Current timestamp: %u; New timestamp: %u", current_timestamp, new_timestamp);
-    print_debug(output_buf);
-
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     current_timestamp = new_timestamp;
     decoder_status.subscribed_channels[idx].fresh = false;
     flash_erase_page(FLASH_STATUS_ADDR);
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
-    // request_privilege();
-    // MXC_FLC_Write(FLASH_STATUS_ADDR, sizeof(flash_entry_t), &decoder_status);
-    // drop_privilege();
 
-    return 0;   // Idk if this is a flag used later
+    return 0;
 }
 
 int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
