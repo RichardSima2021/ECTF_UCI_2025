@@ -75,6 +75,8 @@ uint8_t subscription_key[] = {
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
 
+timestamp_t current_timestamp;
+
 
 /**********************************************************
  ******************* UTILITY FUNCTIONS ********************
@@ -167,10 +169,13 @@ int list_channels() {
             resp.channel_info[resp.n_channels].start = decoder_status.subscribed_channels[i].start_timestamp;
             resp.channel_info[resp.n_channels].end = decoder_status.subscribed_channels[i].end_timestamp;
             resp.n_channels++;
+
         }
     }
 
     len = sizeof(resp.n_channels) + (sizeof(channel_info_t) * resp.n_channels);
+
+
 
     // Success message
     write_packet(LIST_MSG, &resp, len);
@@ -267,7 +272,6 @@ void reset_channel(int i) {
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
-    decoder_status.subscribed_channels[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
     decoder_status.subscribed_channels[i].fresh = false;
     flash_erase_page(FLASH_STATUS_ADDR);
@@ -404,8 +408,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 decoder_status.subscribed_channels[i].start_timestamp = update.start_timestamp;
                 // set end timestamp
                 decoder_status.subscribed_channels[i].end_timestamp = update.end_timestamp;
-                // set current timestamp
-                decoder_status.subscribed_channels[i].current_timestamp = 0;
                 // set fresh flag
                 decoder_status.subscribed_channels[i].fresh = true;
                 modified = true;
@@ -575,6 +577,8 @@ void init() {
 
     uint32_t boot_flag;
 
+    current_timestamp = 0;
+
     // Read starting flash values into our flash status struct
     MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     MXC_FLC_Read(BOOT_FLAG_ADDR, &boot_flag, sizeof(uint32_t));
@@ -599,7 +603,6 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
-            subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].fresh = false;
         }
 

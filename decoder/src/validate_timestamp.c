@@ -9,6 +9,7 @@
 #define TIMESTAMP_LENGTH 8
 
 extern flash_entry_t decoder_status;
+extern timestamp_t current_timestamp;
 
 void clean_up(){
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
@@ -16,6 +17,13 @@ void clean_up(){
 }
 
 int check_two_timestamp(timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
+
+    char output_buf[BUF_LEN] = {0};
+
+    sprintf(
+        output_buf,
+        "Plaintext_ts: %u; extracted_ts: %u", plaintext_ts, extracted_timestamp);
+    print_debug(output_buf);
 
     //Encoded frame looks like this: Channelid || Timestamp || C1 || C2 
 
@@ -55,7 +63,12 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
 
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
-    int current_timestamp = decoder_status.subscribed_channels[idx].current_timestamp;
+    char output_buf[BUF_LEN] = {0};
+
+        sprintf(
+            output_buf,
+            "Extracted timestamp: %u; current timestamp: %u", extracted_timestamp, current_timestamp);
+        print_debug(output_buf);
 
     if (decoder_status.subscribed_channels[idx].fresh) {
         // if this channel has not received anything yet, then current timestamp can = extracted timestamp
@@ -79,12 +92,20 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
     }
 
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    
-    if ((extracted_timestamp > decoder_status.subscribed_channels[idx].start_timestamp)) {
-        if ((extracted_timestamp < decoder_status.subscribed_channels[idx].end_timestamp)) {
+
+    char output_buf[BUF_LEN] = {0};
+
+    sprintf(
+        output_buf,
+        "Extracted timestamp: %u; Channel start: %u; Channel end: %u", extracted_timestamp, decoder_status.subscribed_channels[idx].start_timestamp, decoder_status.subscribed_channels[idx].end_timestamp);
+    print_debug(output_buf);
+
+    if ((extracted_timestamp >= decoder_status.subscribed_channels[idx].start_timestamp)) {
+        if ((extracted_timestamp <= decoder_status.subscribed_channels[idx].end_timestamp)) {
             return 1;
         }
-    }
+    } 
+    
     return 0;
 }
 
@@ -95,9 +116,15 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
         return 0;
     }
 
+    char output_buf[BUF_LEN] = {0};
+
+    sprintf(
+        output_buf,
+        "Current timestamp: %u; New timestamp: %u", current_timestamp, new_timestamp);
+    print_debug(output_buf);
+
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    
-    decoder_status.subscribed_channels[idx].current_timestamp = new_timestamp;
+    current_timestamp = new_timestamp;
     decoder_status.subscribed_channels[idx].fresh = false;
     flash_erase_page(FLASH_STATUS_ADDR);
     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
@@ -120,7 +147,7 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
 
             if (within_frame(channel_id,extracted_timestamp)) {
                 print_debug("Within timestamp interval");
-                update_current_timestamp(channel_id, plaintext_ts);
+                update_current_timestamp(channel_id, extracted_timestamp);
                 return 1;
             }
         }
