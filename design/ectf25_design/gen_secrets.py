@@ -50,7 +50,7 @@ def gen_secrets(channels: list[int]) -> bytes:
     }
     secrets['flash_key']=os.urandom(16).hex()
 
-    print('Flash key: ', secrets['flash_key'])
+    # print('Flash key: ', secrets['flash_key'])
     
     for channel in [0] + channels:
         secrets[f"channel_{channel}"] = {
