@@ -5,7 +5,9 @@ MEMORY {
     FLASH       (rx) : ORIGIN = 0x1000E000, LENGTH = 0x00038000 /* Location of team firmware */
     RESERVED    (rw) : ORIGIN = 0x10046000, LENGTH = 0x00038000 /* Reserved */
     ROM_BL_PAGE (rw) : ORIGIN = 0x1007E000, LENGTH = 0x00002000 /* Reserved */
-    SRAM        (rwx): ORIGIN = 0x20000000, LENGTH = 0x00020000 /* 128kB SRAM */
+    
+    FLASH_CODE  (rwx): ORIGIN = 0x20000000, LENGTH = 0x0000A000 /* 48 kB flash code */
+    SRAM        (rwx): ORIGIN = 0x2000A000, LENGTH = 0x00014000 /* 80 kB SRAM */
 }
 
 SECTIONS {
@@ -74,11 +76,24 @@ SECTIONS {
         __exidx_end = .;
     } > FLASH
 
+    .flashprog :
+    {
+        _flashprog = .;
+        . = ALIGN(4);
+        *(.flashprog*)
+        . = ALIGN(4);
+
+        . = ALIGN(0x2000);
+        . = . + 0x2000;
+
+        _eflashprog = .;
+    } > FLASH_CODE AT>FLASH
+    __load_flashprog = LOADADDR(.flashprog);
+
     .data :
     {
         _data = ALIGN(., 4);
         *(.data*)           /*read-write initialized data: initialized global variable*/
-        *(.flashprog*)      /* Flash program */
 
         /* These array sections are used by __libc_init_array to call static C++ constructors */
         . = ALIGN(4);
