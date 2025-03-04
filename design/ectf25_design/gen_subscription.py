@@ -42,6 +42,9 @@ def gen_subscription(
     # TODO: Update this function to provide a Decoder with whatever data it needs to
     #   subscribe to a new channel
 
+    if(start < 0 or end < 0 or start >= end or channel < 0):
+        raise ValueError("Invalid start, end, or channel")
+
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 

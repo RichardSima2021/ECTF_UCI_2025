@@ -379,6 +379,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         return -1;
     }
 
+    if (update.start_timestamp >= update.end_timestamp){
+        STATUS_LED_RED();
+        print_error("start_timestamp >= end_timestamp");
+        return -1;
+    }
+
     // 6.
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
