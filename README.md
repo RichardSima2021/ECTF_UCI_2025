@@ -176,7 +176,7 @@ options:
 ### **Example Utilization**
 
 #### Linux
-This command will create a subscription file called subscription.bin targeting a device with ID 0xDEADBEEF, a start
+This command will create a subscription file called `deadbeef_c1.sub` targeting a device with ID 0xDEADBEEF, a start
 starting time stamp of "now", and an end timestamp of "one hour in the future" for channel 1. All timestamps are in
 Epoch time in nanoseconds.
 
@@ -185,7 +185,7 @@ python -m ectf25_design.gen_subscription secrets/secrets.json deadbeef_c1.sub 0x
 ```
 
 #### PowerShell
-This command will create a subscription file called subscription.bin targeting a device with ID 0xDEADBEEF, a start
+This command will create a subscription file called `deadbeef_c1.sub` targeting a device with ID 0xDEADBEEF, a start
 starting time stamp of 32, and an end timestamp of 128 for channel 1.
 ```bash
 python -m ectf25_design.gen_subscription secrets/secrets.json deadbeef_c1.sub 0xDEADBEEF 32 128 1
@@ -266,7 +266,7 @@ python -m ectf25.tv.list COM12
 
 ### Subscription Update Tool
 
-The subscription update tool takes in an encoded update packet (in the form of a `.bin` file, often renamed to `.sub`)
+The subscription update tool takes in an encoded update packet (in the form of a `.sub` file)
 and sends it to the decoder.
 
 ```
@@ -287,14 +287,16 @@ options:
 
 #### Linux
 
+The `deadbeef_c1.sub` subscription file is used here.
+
 ```bash
-python -m ectf25.tv.subscribe subscription.bin /dev/tty.usbmodem11302
+python -m ectf25.tv.subscribe deadbeef_c1.sub /dev/tty.usbmodem11302
 ```
 
 #### PowerShell
 
 ```
-python -m ectf25.tv.subscribe subscription.bin COM12
+python -m ectf25.tv.subscribe deadbeef_c1.sub COM12
 ```
 
 ### Tester Tool
