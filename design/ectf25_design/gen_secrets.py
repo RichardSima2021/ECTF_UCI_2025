@@ -13,7 +13,7 @@ Copyright: Copyright (c) 2025 The MITRE Corporation
 import argparse
 import json
 import os
-from design.ectf25_design import generate_secret_h #as generate_secret_h
+from ectf25_design import generate_secret_h #as generate_secret_h
 from pathlib import Path
 
 import secrets as secret_gen
@@ -50,7 +50,7 @@ def gen_secrets(channels: list[int]) -> bytes:
     }
     secrets['flash_key']=os.urandom(16).hex()
 
-    print('Flash key: ', secrets['flash_key'])
+    # print('Flash key: ', secrets['flash_key'])
     
     for channel in [0] + channels:
         secrets[f"channel_{channel}"] = {
