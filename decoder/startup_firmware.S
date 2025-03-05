@@ -221,6 +221,17 @@ Reset_Handler:
     blx     r0
     cbnz    r0, .SKIPRAMINIT
 
+    ldr	    r1, =__load_flashprog
+    ldr	    r2, =_flashprog
+    ldr	    r3, =_eflashprog
+
+.LC_FLASHPROG:
+    cmp	    r2, r3
+    ittt    lt
+    ldrlt   r0, [r1], #4
+    strlt   r0, [r2], #4
+    blt	    .LC_FLASHPROG
+
 /*     Loop to copy data from read only memory to RAM. The ranges
  *      of copy from/to are specified by following symbols evaluated in
  *      linker script.

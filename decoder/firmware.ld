@@ -5,9 +5,8 @@ MEMORY {
     FLASH       (rx) : ORIGIN = 0x1000E000, LENGTH = 0x00038000 /* Location of team firmware */
     RESERVED    (rw) : ORIGIN = 0x10046000, LENGTH = 0x00038000 /* Reserved */
     ROM_BL_PAGE (rw) : ORIGIN = 0x1007E000, LENGTH = 0x00002000 /* Reserved */
-    
-    FLASH_CODE  (rwx): ORIGIN = 0x20000000, LENGTH = 0x0000A000 /* 48 kB flash code */
-    SRAM        (rwx): ORIGIN = 0x2000A000, LENGTH = 0x00014000 /* 80 kB SRAM */
+    FLASHPROG   (rw) : ORIGIN = 0x20000000, LENGTH = 0x00008000 /* Flash program section */
+    SRAM        (rwx): ORIGIN = 0x20008000, LENGTH = 0x00018000 /* Remaining SRAM (128kB - 32kB) */
 }
 
 SECTIONS {
@@ -76,18 +75,15 @@ SECTIONS {
         __exidx_end = .;
     } > FLASH
 
+    /* Flash program section - placed at beginning of SRAM with 0x8000 bytes size */
     .flashprog :
     {
+        . = ALIGN(4);
         _flashprog = .;
+        *(.flashprog*)      /* Flash program */
         . = ALIGN(4);
-        *(.flashprog*)
-        . = ALIGN(4);
-
-        . = ALIGN(0x2000);
-        . = . + 0x2000;
-
         _eflashprog = .;
-    } > FLASH_CODE AT>FLASH
+    } > FLASHPROG AT>FLASH
     __load_flashprog = LOADADDR(.flashprog);
 
     .data :
