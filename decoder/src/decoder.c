@@ -27,7 +27,7 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "/secrets/secret.h"
+#include "../../secrets/secret.h"
 #include "validate_timestamp.h"
 
 
