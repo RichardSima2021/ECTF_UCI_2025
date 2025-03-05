@@ -120,7 +120,7 @@ def main():
         # Dump the secrets to the file
         f.write(secrets)
     
-    generate_secret_h.gen_sec(args.secrets_file)
+    # generate_secret_h.gen_sec(args.secrets_file)
 
     # For your own debugging. Feel free to remove
     logger.success(f"Wrote secrets to {str(args.secrets_file.absolute())}")
