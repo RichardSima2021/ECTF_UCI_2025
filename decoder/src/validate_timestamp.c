@@ -40,7 +40,7 @@ int extract_channel_idx(int channel_id) {
 int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
     int idx;
     idx = extract_channel_idx(channel_id);
-    if (idx == -1) {
+    if (idx == -1 && channel_id != EMERGENCY_CHANNEL) {
         // inactive channel/didn't find
         print_error("Didn't find channel");
         return 0;
