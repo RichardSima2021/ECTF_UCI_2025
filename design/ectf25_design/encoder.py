@@ -90,7 +90,7 @@ class Encoder:
 
         You **may not** change the arguments or returns of this function!
 
-        :param channel: 16b unsigned channel number. Channel 0 is the emergency
+        :param channel: 32b unsigned channel number. Channel 0 is the emergency
             broadcast that must be decodable by all channels.
         :param frame: Frame to encode. Max frame size is 64 bytes.
         :param timestamp: 64b timestamp to use for encoding. **NOTE**: This value may

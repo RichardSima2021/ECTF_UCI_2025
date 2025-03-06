@@ -20,7 +20,6 @@ MFLOAT_ABI=soft
 
 IPATH+=../deployment
 IPATH+=inc/
-IPATH+=/secrets
 VPATH+=src/
 
 # ****************** eCTF Bootloader *******************
