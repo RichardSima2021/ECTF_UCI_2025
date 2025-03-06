@@ -125,7 +125,7 @@ typedef struct {
 
 typedef struct {
     // uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
-    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
+    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT + 1];
 } flash_entry_t;
 
 typedef uint8_t interwoven_bytes[48];

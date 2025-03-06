@@ -78,7 +78,7 @@ int is_subscribed(channel_id_t channel) {
     }
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Check if the decoder has has a subscription
-    for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
+    for (int i = 1; i <= MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == channel && decoder_status.subscribed_channels[i].active) {
             return 1;
         }
@@ -147,7 +147,7 @@ int list_channels() {
     resp.n_channels = 0;
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
-    for (uint32_t i = 0; i < MAX_CHANNEL_COUNT; i++) {
+    for (uint32_t i = 1; i <= MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].active) {
             resp.channel_info[resp.n_channels].channel =  decoder_status.subscribed_channels[i].id;
             resp.channel_info[resp.n_channels].start = decoder_status.subscribed_channels[i].start_timestamp;
@@ -272,8 +272,8 @@ bool found_duplicate_channel_id() {
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     int i;
     int j;
-    for (i = 0; i < MAX_CHANNEL_COUNT; i++) {
-        for (j = 0; j < MAX_CHANNEL_COUNT; j++) {
+    for (i = 0; i <= MAX_CHANNEL_COUNT; i++) {
+        for (j = 0; j <= MAX_CHANNEL_COUNT; j++) {
             if (i != j) {
                 if (decoder_status.subscribed_channels[i].id == decoder_status.subscribed_channels[j].id && decoder_status.subscribed_channels[i].active && decoder_status.subscribed_channels[j].active) {
                     return -1;
@@ -382,7 +382,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     bool modified = false;
     int active_channel = 0;
     // Find the first empty slot in the subscription array
-    for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
+    for (int i = 1; i <= MAX_CHANNEL_COUNT; i++) {
         
         // if this channel is the same ID as incoming channel info or it's not an active channel
         if (decoder_status.subscribed_channels[i].id == update.channel || !decoder_status.subscribed_channels[i].active) {
@@ -419,7 +419,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     // If we do not have any room for more subscriptions
     // And there was no modification because all channels were active
-    if (active_channel == MAX_CHANNEL_COUNT && !modified) {
+    if (active_channel >= MAX_CHANNEL_COUNT && !modified) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - max subscriptions installed\n");
         return -1;
@@ -587,9 +587,9 @@ void init() {
 
         boot_flag = FLASH_FIRST_BOOT;
 
-        channel_status_t subscription[MAX_CHANNEL_COUNT];
+        channel_status_t subscription[MAX_CHANNEL_COUNT + 1];
 
-        for (int i = 0; i < MAX_CHANNEL_COUNT; i++){
+        for (int i = 1; i <= MAX_CHANNEL_COUNT; i++){
             subscription[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
@@ -597,8 +597,15 @@ void init() {
             subscription[i].fresh = false;
         }
 
+        subscription[0].start_timestamp = 0;
+        subscription[0].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
+        subscription[0].active = true;
+        subscription[0].id = 0;
+        subscription[0].fresh = false;
+        
+
         // Write the starting channel subscriptions into flash.
-        memcpy(decoder_status.subscribed_channels, subscription, MAX_CHANNEL_COUNT*sizeof(channel_status_t));
+        memcpy(decoder_status.subscribed_channels, subscription, (MAX_CHANNEL_COUNT+1)*sizeof(channel_status_t));
 
         flash_erase_page(FLASH_STATUS_ADDR);
         flash_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
