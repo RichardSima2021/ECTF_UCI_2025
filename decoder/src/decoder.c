@@ -27,12 +27,9 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "../../secrets/secret.h"
+#include "secret.h"
 #include "validate_timestamp.h"
 
-
-#include <wolfssl/options.h>
-#include <wolfssl/wolfcrypt/sha256.h>
 
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/sha256.h>

@@ -12,7 +12,7 @@
 # **********************************************************
 
 # Add your config here!
-
+$(shell python generate_secret_h.py /global.secrets)
 # This example is only compatible with the FTHR board,
 # so we override the BOARD value to hard-set it.
 override BOARD=FTHR_RevA
