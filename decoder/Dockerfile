@@ -57,4 +57,4 @@ WORKDIR /decoder
 ENTRYPOINT ["/bin/bash", "-c", "source /root/my-venv/bin/activate &&  make release DECODER_ID=${DECODER_ID} && cp build/max78000.elf build/max78000.bin /out"]
 
 # Sample run command:
-# docker run --rm -v ./build_out:/out -v ./:/decoder -v ./secrets:/secrets -e DECODER_ID=0xdeadbeef decoder
+# docker run -v ./decoder/:/decoder -v ./global.secrets:/global.secrets:ro -v ./deadbeef_build:/out -e DECODER_ID=0xdeadbeef build-decoder

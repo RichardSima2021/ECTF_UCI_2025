@@ -1,5 +1,6 @@
 import sys
 import json
+import os
 
 
 def hex_to_c_array(hex_string):
@@ -24,7 +25,6 @@ def gen_sec(file_name):
 
     try:
         with open(file_name) as json_file:
-
             # Reading the JSON content and parsing it into a dictionary
             content_string = json_file.read()
             json_data = json.loads(content_string)
@@ -48,8 +48,8 @@ def gen_sec(file_name):
 #define SECRET_H
 
 #include "string.h"
-#include "../decoder/inc/types.h"
-#include "../decoder/inc/advanced_flash.h"
+#include "types.h"
+#include "advanced_flash.h"
 
 // Initializes all secret_t structs for all channels
 void init_secret()
@@ -87,7 +87,7 @@ void init_secret()
 """
 # ------------------------------------------------- End of generating structs --------------------------------------------------------------- #
 
-        with open("secrets/secret.h", "w") as header_file:
+        with open("inc/secret.h", "w") as header_file:
             header_file.write(secret_h)
     
     except FileNotFoundError as Error: # This is catching ANY file not found error so it was catching the secret.h problem
@@ -107,6 +107,7 @@ def main():
     if len(sys.argv) != 2:
         print("Usage: python generate_secret_h.py <json_file_name>")
     else:
+        # os.makedirs("secrets", exist_ok=True) # assuming run from design/ectf25_design
         gen_sec(sys.argv[1])
 
 if __name__ == "__main__":

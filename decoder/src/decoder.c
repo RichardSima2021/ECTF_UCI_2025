@@ -27,12 +27,9 @@
 #include "advanced_uart.h"
 #include "mpu.h"
 
-#include "./../secrets/secret.h"
+#include "secret.h"
 #include "validate_timestamp.h"
 
-
-#include <wolfssl/options.h>
-#include <wolfssl/wolfcrypt/sha256.h>
 
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/sha256.h>
@@ -50,23 +47,10 @@
 #include "simple_crypto.h"
 #endif  //CRYPTO_EXAMPLE
 
+#ifndef DECODER_ID
+#define DECODER_ID 0xDEADBEEF
+#endif
 
-
-// These are some temperory keys for developing purposes. Need to be deleted later
-// uint8_t mask_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-// uint8_t message_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-// uint8_t data_key[16] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-
-uint8_t checksum[] = {
-    0xA1, 0xF1, 0x72, 0x5E, 0xD0, 0xE9, 0x3C, 0x2E,
-    0xD6, 0x22, 0xB7, 0x10, 0xBD, 0xA2, 0x6C, 0x0B,
-    0xE9, 0x49, 0xFA, 0x3B, 0xA5, 0x8C, 0xA7, 0x56
-};
-
-uint8_t subscription_key[] = {
-    0x67, 0xE2, 0x7D, 0xB8, 0xEA, 0x72, 0x14, 0x51, // 'g', '\xe2', '}', '\xb8', '\xea', 'r', '\x14', 'Q'
-    0x8E, 0x3C, 0x3C, 0xA3, 0xC0, 0x14, 0x85, 0xA5  // '\x8e', '<', '<', '\xa3', '\xc0', '\x14', '\x85', '\xa5'
-};
 
 /**********************************************************
  ************************ GLOBALS *************************
@@ -74,6 +58,8 @@ uint8_t subscription_key[] = {
 
 // This is used to track decoder subscriptions
 flash_entry_t decoder_status;
+
+timestamp_t current_timestamp;
 
 
 /**********************************************************
@@ -167,10 +153,13 @@ int list_channels() {
             resp.channel_info[resp.n_channels].start = decoder_status.subscribed_channels[i].start_timestamp;
             resp.channel_info[resp.n_channels].end = decoder_status.subscribed_channels[i].end_timestamp;
             resp.n_channels++;
+
         }
     }
 
     len = sizeof(resp.n_channels) + (sizeof(channel_info_t) * resp.n_channels);
+
+
 
     // Success message
     write_packet(LIST_MSG, &resp, len);
@@ -249,8 +238,8 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
 
     // Pull individual values from temp_subscription_arr
     subscription_info->decoder_id = (temp_subscription_arr[3] << 24) + (temp_subscription_arr[2] << 16) + (temp_subscription_arr[1] << 8) + (temp_subscription_arr[0]);
-    subscription_info->start_timestamp = (temp_subscription_arr[4]) + (temp_subscription_arr[5]) + (temp_subscription_arr[6]) + (temp_subscription_arr[7]) + (temp_subscription_arr[8]) + (temp_subscription_arr[9]) + (temp_subscription_arr[10]) + (temp_subscription_arr[11]);
-    subscription_info->end_timestamp = (temp_subscription_arr[12]) + (temp_subscription_arr[13]) + (temp_subscription_arr[14]) + (temp_subscription_arr[15]) + (temp_subscription_arr[16]) + (temp_subscription_arr[17]) + (temp_subscription_arr[18]) + (temp_subscription_arr[19]);
+    subscription_info->start_timestamp = (temp_subscription_arr[4]) + (temp_subscription_arr[5] << 8) + (temp_subscription_arr[6] << 16) + (temp_subscription_arr[7] << 24) + (temp_subscription_arr[8] << 32) + (temp_subscription_arr[9] << 40) + (temp_subscription_arr[10] << 48) + (temp_subscription_arr[11] << 56);
+    subscription_info->end_timestamp = (temp_subscription_arr[12]) + (temp_subscription_arr[13] << 8) + (temp_subscription_arr[14] << 16) + (temp_subscription_arr[15] << 24) + (temp_subscription_arr[16] << 32) + (temp_subscription_arr[17] << 40) + (temp_subscription_arr[18] << 48) + (temp_subscription_arr[19] << 56);
     
     return 0;  // Success
 }
@@ -267,7 +256,6 @@ void reset_channel(int i) {
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
-    decoder_status.subscribed_channels[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
     decoder_status.subscribed_channels[i].fresh = false;
     flash_erase_page(FLASH_STATUS_ADDR);
@@ -353,6 +341,13 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         print_error("Failed to extract\n");
         return -1;
     }
+
+    // Check decoder id match
+    if (update.decoder_id != DECODER_ID){
+        STATUS_LED_RED();
+        print_error("The decoder id doesn't match\n");
+        return -1;
+    }
     
     // Validate the checksum
     if (validate(chksm, &channel_secrets.check_sum) == -1) {
@@ -372,6 +367,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     if (update.channel == EMERGENCY_CHANNEL) {
         STATUS_LED_RED();
         print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
+        return -1;
+    }
+
+    if (update.start_timestamp >= update.end_timestamp){
+        STATUS_LED_RED();
+        print_error("start_timestamp >= end_timestamp");
         return -1;
     }
 
@@ -404,8 +405,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 decoder_status.subscribed_channels[i].start_timestamp = update.start_timestamp;
                 // set end timestamp
                 decoder_status.subscribed_channels[i].end_timestamp = update.end_timestamp;
-                // set current timestamp
-                decoder_status.subscribed_channels[i].current_timestamp = 0;
                 // set fresh flag
                 decoder_status.subscribed_channels[i].fresh = true;
                 modified = true;
@@ -540,12 +539,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     // TODO: Validation of Time Stamp Here
     if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-        print_debug("Valid timestamp");
-        // update_current_timestamp(channel_id, timestamp);
-        sprintf(
-            output_buf,
-            "Valid timestamp  %u\n", timestamp_decrypted);
-        print_debug(output_buf);
     } else {
         STATUS_LED_RED();
         sprintf(
@@ -575,6 +568,8 @@ void init() {
 
     uint32_t boot_flag;
 
+    current_timestamp = 0;
+
     // Read starting flash values into our flash status struct
     MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     MXC_FLC_Read(BOOT_FLAG_ADDR, &boot_flag, sizeof(uint32_t));
@@ -599,7 +594,6 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
-            subscription[i].current_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].fresh = false;
         }
 

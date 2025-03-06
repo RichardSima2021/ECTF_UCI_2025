@@ -42,6 +42,9 @@ def gen_subscription(
     # TODO: Update this function to provide a Decoder with whatever data it needs to
     #   subscribe to a new channel
 
+    if(start < 0 or end < 0 or start >= end or channel < 0):
+        raise ValueError("Invalid start, end, or channel")
+
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 
@@ -116,8 +119,8 @@ def encrypt(interwoven_bytestring, secrets, channel):
     #print("padded length: ", len(data))
     #subscription_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
     subscription_key = bytes.fromhex(get_channel_key(channel, secrets)['subscription_key'])
-    # iv = secret_gen.token_bytes(16)
-    iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
+    iv = secret_gen.token_bytes(16)
+    # iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
 
     aes = AES.new(subscription_key, AES.MODE_CBC, iv)
     cipher = aes.encrypt(data)
