@@ -137,13 +137,16 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
     uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
     
     void* return_addr = __builtin_return_address(0);
-    
+#ifdef CONDITIONAL_PRIVILEGE_ESCALATION 
     // TODO: Find correct offset after merge
     if((return_addr == READ_SECRETS_IN_DECODE_ADDRESS) ||
        (return_addr == READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS) || 
        (return_addr == READ_SECRETS_IN_CHECK_INCREASING_ADDRESS) ){
         flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
     }
+#else
+    flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
+#endif
     
 }
 

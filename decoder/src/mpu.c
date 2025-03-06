@@ -18,6 +18,9 @@ void read_secrets(int channel_id, secret_t* secret_buffer);
 
 #define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 0x14)
 
+// #define CONDITIONAL_PRIVILEGE_ESCALATION (1)
+#undef CONDITIONAL_PRIVILEGE_ESCALATION
+
 /**
  * @brief SVC Handler
  * @details This function is called when an SVC interrupt is triggered. It clears the control bit for privileged mode.
@@ -36,12 +39,14 @@ void SVC_Handler(void) {
 } 
 
 void svc_handler_c(uint32_t *stack_frame) {
+#ifdef CONDITIONAL_PRIVILEGE_ESCALATION
     void* return_addr = stack_frame[6];
     if ((return_addr+1) != SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET) {
         print_debug("Invalid SVC call, crashing...\n");
         while(1);
     }
     print_debug("Successful SVC call\n");
+#endif
 }
 
 /**
@@ -51,11 +56,14 @@ void svc_handler_c(uint32_t *stack_frame) {
  */
 void request_privilege() {
     void* return_addr = __builtin_return_address(0);
-
+#ifdef CONDITIONAL_PRIVILEGE_ESCALATION
     if(return_addr == REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET ||
        return_addr == REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
             __asm("svc #0");
        }
+#else
+    __asm("svc #0");
+#endif
 }
 
 
@@ -144,11 +152,15 @@ uint8_t mpu_setup() {
  */
 void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
     void* return_addr = __builtin_return_address(0);
-    
+
+#ifdef CONDITIONAL_PRIVILEGE_ESCALATION
     // TODO: Find correct offset after merge
     if(return_addr == PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS){
         request_privilege();
     }
+#else
+    request_privilege();
+#endif
 
     flash_read(address, buffer, len);
     drop_privilege();
@@ -161,10 +173,14 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
  */
 int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
     void* return_addr = __builtin_return_address(0); 
+#ifdef CONDITIONAL_PRIVILEGE_ESCALATION
     if ((return_addr == PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS) 
         || (return_addr == PRIVILEGED_WRITE_IN_UPDATE_CURRENT_TIMESTAMP_ADDRESS )){
         request_privilege();
     }
+#else
+    request_privilege();
+#endif
     int error = flash_write(address, buffer, len);
     drop_privilege();
     return error;
