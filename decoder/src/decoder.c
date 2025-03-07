@@ -573,7 +573,7 @@ void init() {
     // Read starting flash values into our flash status struct
     MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     MXC_FLC_Read(BOOT_FLAG_ADDR, &boot_flag, sizeof(uint32_t));
-    if (boot_flag != FLASH_FIRST_BOOT) {
+    if (boot_flag != FLASH_FIRST_BOOT) {//this is first boot
     //if (true) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
@@ -595,6 +595,7 @@ void init() {
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
             subscription[i].fresh = false;
+            subscription[i].magic = i;
         }
 
         subscription[0].start_timestamp = 0;

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-
+extern flash_entry_t decoder_status;
 
 
 
@@ -129,9 +129,25 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
  * @return int: return negative if failure, zero if success
  */
 void read_secrets(int channel_id, secret_t* secret_buffer) {
-    uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+    int error = 1;
+    //Find the magic value for the corresponding channel ID
+    for (int i = 0; i <= MAX_CHANNEL_COUNT; i++) {
+        if (decoder_status.subscribed_channels[i].id == channel_id) {
+            uint32_t magic = decoder_status.subscribed_channels[i].magic;
+            if (magic == DEFAULT_MAGIC) {
+                print_error("Channel not subscribed\n");
+                return;
+            }
+            uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+            flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
+            error = 0;
+            break;
+        }
+    }
+    if (error){
+        print_error("Didn't find channel");
+    }
     
-    flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
 }
 
 /**
@@ -141,11 +157,21 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
 int write_secrets(secret_t* s) {
     //First retrieve the channel ID to determine the offset
     int channel_id=s->channel_id;
-    //then calculate the memory offset from this channel id
-    uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
-
-    int error = flash_write(memory_addr, s, sizeof(secret_t));
-
+    int error;
+    //Find the magic value for the corresponding channel ID
+    for (int i = 0; i <= MAX_CHANNEL_COUNT; i++) {
+        if (decoder_status.subscribed_channels[i].id == channel_id) {
+            uint32_t magic = decoder_status.subscribed_channels[i].magic;
+            if (magic == DEFAULT_MAGIC) {
+                print_error("Channel not subscribed\n");
+                return -1;
+            }
+            //then calculate the memory offset from this channel magic
+            uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+            error = flash_write(memory_addr, s, sizeof(secret_t));
+            break;
+        }
+    }
     return error;
 }
 

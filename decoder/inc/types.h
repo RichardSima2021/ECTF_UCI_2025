@@ -26,6 +26,7 @@
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
 #define DEFAULT_CHANNEL_ID -1
+#define DEFAULT_MAGIC -1
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
@@ -117,6 +118,7 @@ typedef struct {
 
 typedef struct {
     bool active;
+    uint32_t magic;
     channel_id_t id;
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;

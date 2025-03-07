@@ -20,6 +20,7 @@
 
 #include "advanced_aes.h"
 #include "types.h"
+#include "host_messaging.h"
 
 //#include "simple_crypto.h"
 
