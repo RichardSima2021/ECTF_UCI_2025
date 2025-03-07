@@ -602,7 +602,7 @@ void init() {
         subscription[0].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
         subscription[0].active = true;
         subscription[0].id = 0;
-        subscription[0].fresh = false;
+        subscription[0].fresh = true;
         
 
         // Write the starting channel subscriptions into flash.
