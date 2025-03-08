@@ -103,6 +103,10 @@ class Encoder:
         # TODO: encode the satellite frames so that they meet functional and
         #  security requirements
 
+        if f'channel_{channel}' not in self.channel_keys:
+            return struct.pack("<IQI", channel, timestamp, len(frame))
+    
+
         mask_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["mask_key"])
         msg_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["msg_key"])
         subscription_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["subscription_key"])

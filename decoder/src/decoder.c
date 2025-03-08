@@ -538,19 +538,18 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
 
     // TODO: Validation of Time Stamp Here
-    if (validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-    } else {
+    if (!validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
         STATUS_LED_RED();
         sprintf(
             output_buf,
             "Invalid timestamp  %u\n", timestamp_decrypted);
         print_error(output_buf);
+        return -1;
     }
 
 
-
-    
     write_packet(DECODE_MSG, frame_data, new_frame->frame_length);
+
     return 0;
 }
 

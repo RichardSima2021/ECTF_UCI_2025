@@ -342,7 +342,7 @@ secrets/*
 
 decoder/inc/secret.h
 
-decoder/inc/secret.c
+decoder/src/secret.c
 
 
 deadbeef*
