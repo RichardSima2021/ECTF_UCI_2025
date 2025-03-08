@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "secret.h"
+
 extern flash_entry_t decoder_status;
 
 
@@ -130,14 +132,13 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
  */
 void read_secrets(int channel_id, secret_t* secret_buffer) {
     int error = 1;
+
+    channel_id_t channel_list[] = CHANNEL_LIST;
+
     //Find the magic value for the corresponding channel ID
-    for (int i = 0; i <= MAX_CHANNEL_COUNT; i++) {
-        if (decoder_status.subscribed_channels[i].id == channel_id) {
-            uint32_t magic = decoder_status.subscribed_channels[i].magic;
-            if (magic == DEFAULT_MAGIC) {
-                print_error("Channel not subscribed\n");
-                return;
-            }
+    for (int i = 0; i < CHANNEL_LIST_SIZE; i++) {
+        if (channel_list[i] == channel_id) {
+            uint32_t magic = i;
             uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
             flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
             error = 0;
@@ -145,7 +146,7 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
         }
     }
     if (error){
-        print_error("Didn't find channel");
+        print_error("Didn't find channel during read_secrets");
     }
     
 }
@@ -156,22 +157,29 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
  */
 int write_secrets(secret_t* s) {
     //First retrieve the channel ID to determine the offset
-    int channel_id=s->channel_id;
+    channel_id_t channel_id=s->channel_id;
     int error;
+
+    channel_id_t channel_list[] = CHANNEL_LIST;
+
+    bool updated = false;
+
     //Find the magic value for the corresponding channel ID
-    for (int i = 0; i <= MAX_CHANNEL_COUNT; i++) {
-        if (decoder_status.subscribed_channels[i].id == channel_id) {
-            uint32_t magic = decoder_status.subscribed_channels[i].magic;
-            if (magic == DEFAULT_MAGIC) {
-                print_error("Channel not subscribed\n");
-                return -1;
-            }
+    for (int i = 0; i < CHANNEL_LIST_SIZE; i++) {
+        if (channel_id == channel_list[i]) {
+            uint32_t magic = i;
             //then calculate the memory offset from this channel magic
             uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
             error = flash_write(memory_addr, s, sizeof(secret_t));
+            updated = true;
             break;
         }
     }
+
+    if(!updated){
+        print_error("Didn't find channel during write secrets");
+    }
+
     return error;
 }
 

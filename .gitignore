@@ -341,3 +341,8 @@ msdk/
 secrets/*
 
 decoder/inc/secret.h
+
+decoder/inc/secret.c
+
+
+deadbeef*

@@ -47,11 +47,36 @@ def gen_sec(file_name):
 #ifndef SECRET_H
 #define SECRET_H
 
+#define CHANNEL_LIST {{"""
+            
+            channel_list = [str(channel_idx) for channel_idx in json_data.get('channels', [])]
+
+            channel_list_size = len(channel_list)
+            
+            secret_h += f"""{','.join(channel_list)}}}\n"""
+
+            secret_h += f"""
+#define CHANNEL_LIST_SIZE {channel_list_size}
+"""
+
+            secret_h += f"""
+// Initializes all secret_t structs for all channels
+void init_secret();
+
+#endif // SECRET_H
+"""
+            
+            with open("inc/secret.h", "w") as header_file:
+                header_file.write(secret_h)
+
+            secret_c = ""
+
+            secret_c += f"""
+#include "secret.h"
 #include "string.h"
 #include "types.h"
 #include "advanced_flash.h"
 
-// Initializes all secret_t structs for all channels
 void init_secret()
 {{
 """
@@ -63,7 +88,7 @@ void init_secret()
                 channel_data = json_data.get(f"channel_{channel_idx}")
                 if channel_data:
                     double_backslash = '\\"'
-                    secret_h += f"""
+                    secret_c += f"""
     secret_t channel_{channel_idx} = {{
         {channel_data.get('channel_ID', 0)},
         {hex_to_c_array(channel_data.get('mask_key', ''))},
@@ -80,15 +105,13 @@ void init_secret()
     // value you want to set the memory to, and number of bytes to set to the value
     memset(&channel_{channel_idx}, 0, sizeof(secret_t)); // Erase SRAM
 """
-        secret_h += f"""
+        secret_c += f"""
 }}
-        
-#endif // SECRET_H
 """
 # ------------------------------------------------- End of generating structs --------------------------------------------------------------- #
 
-        with open("inc/secret.h", "w") as header_file:
-            header_file.write(secret_h)
+        with open("src/secret.c", "w") as header_file:
+            header_file.write(secret_c)
     
     except FileNotFoundError as Error: # This is catching ANY file not found error so it was catching the secret.h problem
         print(Error)

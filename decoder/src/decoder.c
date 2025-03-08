@@ -595,7 +595,6 @@ void init() {
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
             subscription[i].fresh = false;
-            subscription[i].magic = i;
         }
 
         subscription[0].start_timestamp = 0;
