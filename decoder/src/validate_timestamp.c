@@ -42,7 +42,7 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
     idx = extract_channel_idx(channel_id);
     if (idx == -1) {
         // inactive channel/didn't find
-        print_error("Didn't find channel");
+        // print_error("Didn't find channel");
         return 0;
     }
 
@@ -57,7 +57,7 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
         return 1;
     }
 
-    print_error("Timestamp not increasing");
+    // print_error("Timestamp not increasing");
     return 0;
 
 }
@@ -67,7 +67,7 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
     int idx = extract_channel_idx(channel_id);    
     if (idx == -1) {
         // inactive channel/didn't find
-        print_error("Didn't find channel");
+        // print_error("Didn't find channel");
         return 0;
     }
 
@@ -87,7 +87,7 @@ int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
     int idx=extract_channel_idx(channel_id);
     if (idx == -1) {
         // inactive channel/didn't find
-        print_error("Didn't find channel");
+        // print_error("Didn't find channel");
         return 0;
     }
 
@@ -105,13 +105,13 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
 
     // returns 1 if timestamp is valid, 0 otherwise
     if (check_two_timestamp(plaintext_ts, extracted_timestamp)) {
-        print_debug("Two timestamps match");
+        // print_debug("Two timestamps match");
 
         if (check_increasing(channel_id, extracted_timestamp)) {
-            print_debug("Strictly Increasing");
+            // print_debug("Strictly Increasing");
 
             if (within_frame(channel_id,extracted_timestamp)) {
-                print_debug("Within timestamp interval");
+                // print_debug("Within timestamp interval");
                 update_current_timestamp(channel_id, extracted_timestamp);
                 return 1;
             }
