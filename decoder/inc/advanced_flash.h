@@ -20,6 +20,7 @@
 
 #include "advanced_aes.h"
 #include "types.h"
+#include "host_messaging.h"
 
 //#include "simple_crypto.h"
 
@@ -83,7 +84,7 @@ int flash_erase_page(uint32_t address);
  * @param buf: secret_t*, pointer to buffer for data to be read into
  * @return int: return negative if failure, zero if success
  */
-void read_secrets(int channel_id, secret_t* secret_buffer);
+int read_secrets(int channel_id, secret_t* secret_buffer);
 
 /**
  * @brief Flash Write Secrets

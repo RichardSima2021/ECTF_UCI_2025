@@ -25,7 +25,8 @@
 #define MAX_CHANNEL_COUNT 8
 #define EMERGENCY_CHANNEL 0
 #define FRAME_SIZE 64
-#define DEFAULT_CHANNEL_ID -1
+#define DEFAULT_CHANNEL_ID 0
+#define DEFAULT_MAGIC -1
 #define DEFAULT_CHANNEL_TIMESTAMP 0xFFFFFFFFFFFFFFFF
 // This is a canary value so we can confirm whether this decoder has booted before
 #define FLASH_FIRST_BOOT 0xDEADBEEF
@@ -125,7 +126,7 @@ typedef struct {
 
 typedef struct {
     // uint32_t first_boot; // if set to FLASH_FIRST_BOOT, device has booted before.
-    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT];
+    channel_status_t subscribed_channels[MAX_CHANNEL_COUNT + 1];
 } flash_entry_t;
 
 typedef uint8_t interwoven_bytes[48];

@@ -26,7 +26,7 @@ int check_two_timestamp(timestamp_t plaintext_ts, timestamp_t extracted_timestam
 //helper function, extract the index corresponding to the channel id.
 int extract_channel_idx(int channel_id) {
     flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    for (int i = 0; i < MAX_CHANNEL_COUNT; i++) {
+    for (int i = 0; i <= MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == channel_id) {
             if (decoder_status.subscribed_channels[i].active) {
                 return i;
@@ -47,9 +47,9 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
     //2. check if the timestamp is strictly greater than that
     int idx;
     idx = extract_channel_idx(channel_id);
-    if (idx == -1 && channel_id != EMERGENCY_CHANNEL) {
+    if (idx == -1) {
         // inactive channel/didn't find
-        print_error("Didn't find channel");
+        // print_error("Didn't find channel");
         return 0;
     }
 
@@ -64,7 +64,7 @@ int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
         return 1;
     }
 
-    print_error("Timestamp not increasing");
+    // print_error("Timestamp not increasing");
     return 0;
 
 }
@@ -73,6 +73,8 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
 
     int idx = extract_channel_idx(channel_id);    
     if (idx == -1) {
+        // inactive channel/didn't find
+        // print_error("Didn't find channel");
         return 0;
     }
 
@@ -90,7 +92,9 @@ int within_frame(int channel_id, timestamp_t extracted_timestamp){
 int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
     //this function assumes that decoder_status has already been extracted from the flash
     int idx=extract_channel_idx(channel_id);
-    if(idx == -1){
+    if (idx == -1) {
+        // inactive channel/didn't find
+        // print_error("Didn't find channel");
         return 0;
     }
 
@@ -108,13 +112,13 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
 
     // returns 1 if timestamp is valid, 0 otherwise
     if (check_two_timestamp(plaintext_ts, extracted_timestamp)) {
-        print_debug("Two timestamps match");
+        // print_debug("Two timestamps match");
 
         if (check_increasing(channel_id, extracted_timestamp)) {
-            print_debug("Strictly Increasing");
+            // print_debug("Strictly Increasing");
 
             if (within_frame(channel_id,extracted_timestamp)) {
-                print_debug("Within timestamp interval");
+                // print_debug("Within timestamp interval");
                 update_current_timestamp(channel_id, extracted_timestamp);
                 return 1;
             }

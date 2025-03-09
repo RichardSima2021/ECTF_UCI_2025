@@ -42,17 +42,19 @@ def gen_secrets(channels: list[int]) -> bytes:
     #     "some_secrets": "EXAMPLE",
     # }
     
+    if 0 not in channels:
+        channels = [0] + channels
 
     secrets = {
         # creates a new list with the value 0, representing channel 0, 
         # as the first element
-        "channels": [0] + channels,
+        "channels": channels,
     }
     secrets['flash_key']=os.urandom(16).hex()
 
     # print('Flash key: ', secrets['flash_key'])
     
-    for channel in [0] + channels:
+    for channel in channels:
         secrets[f"channel_{channel}"] = {
             "channel_ID": str(channel),  # Channel ID as an integer
             "mask_key": os.urandom(16).hex(),  # 16 bytes hex

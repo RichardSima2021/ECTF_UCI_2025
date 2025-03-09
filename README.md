@@ -146,7 +146,7 @@ docker run --rm -v ./build_out:/out -v ./:/decoder -v ./../secrets:/secrets -e D
 ```
 cd <example_root>\decoder 
 docker build -t decoder .
-docker run --rm -v .\build_out:/out -v .\:/decoder -v .\..\secrets:/secrets -e DECODER_ID=0xdeadbeef decoder
+docker run --rm -v .\build_out:/out -v .:/decoder -v ...\secrets:/secrets -e DECODER_ID=0xdeadbeef decoder
 ```
 
 #### Note: If the build is hanging indefinitely, try restarting Docker. If that does not resolve the issue, a system restart should fix the issue.
@@ -175,13 +175,25 @@ options:
 
 ### **Example Utilization**
 
-This command will create a subscription file called subscription.bin targeting a device with ID 0xDEADBEEF, a start
-timestamp of 32, and an end timestamp of 128 for channel 1.
-
-#### Linux and PowerShell
+#### Linux
+This command will create a subscription file called `deadbeef_c1.sub` targeting a device with ID 0xDEADBEEF, a start
+starting time stamp of "now", and an end timestamp of "one hour in the future" for channel 1. All timestamps are in
+Epoch time in nanoseconds.
 
 ```bash
-python -m ectf25_design.gen_subscription secrets/secrets.json subscription.bin 0xDEADBEEF 32 128 1
+python -m ectf25_design.gen_subscription secrets/secrets.json deadbeef_c1.sub 0xDEADBEEF $(date +%s) $(($(date +%s) +26000000)) 1
+```
+
+#### PowerShell
+This command will create a subscription file called `deadbeef_c1.sub` targeting a device with ID 0xDEADBEEF, a start
+starting time stamp of 32, and an end timestamp of 128 for channel 1.
+```bash
+python -m ectf25_design.gen_subscription secrets/secrets.json deadbeef_c1.sub 0xDEADBEEF 32 128 1
+```
+
+For Channel 3, use
+```bash
+python -m ectf25_design.gen_subscription secrets/secrets.json deadbeef_c3.sub 0xDEADBEEF 128 512 3
 ```
 
 ## Flashing
@@ -204,6 +216,8 @@ options:
 
 ### **Example Utilization**
 
+Make sure to replace the port (the last argument) with the port connected to the MAX78000.
+
 #### Linux
 
 ```bash
@@ -221,6 +235,7 @@ python -m ectf25.utils.flash .\decoder\build_out\max78000.bin COM12
 ### List Tool
 
 The list tool applies the required list channels functionality from the Satellite TV Decoder system.
+Make sure to replace the port (the last argument) with the port connected to the MAX78000.
 
 ```
 python -m ectf25.tv.list -h
@@ -251,8 +266,8 @@ python -m ectf25.tv.list COM12
 
 ### Subscription Update Tool
 
-The subscription update tool takes in an encoded update packet (in the form of a `.bin` file) and sends it to the
-decoder.
+The subscription update tool takes in an encoded update packet (in the form of a `.sub` file)
+and sends it to the decoder.
 
 ```
 python -m ectf25.tv.subscribe -h
@@ -272,14 +287,16 @@ options:
 
 #### Linux
 
+The `deadbeef_c1.sub` subscription file is used here.
+
 ```bash
-python -m ectf25.tv.subscribe subscription.bin /dev/tty.usbmodem11302
+python -m ectf25.tv.subscribe deadbeef_c1.sub /dev/tty.usbmodem11302
 ```
 
 #### PowerShell
 
 ```
-python -m ectf25.tv.subscribe subscription.bin COM12
+python -m ectf25.tv.subscribe deadbeef_c1.sub COM12
 ```
 
 ### Tester Tool
@@ -329,6 +346,13 @@ python -m ectf25.utils.tester --port /dev/tty.usbmodem11302 -s secrets/secrets.j
 ```
 python -m ectf25.utils.tester --port COM12 -s secrets\secrets.json rand -c 1 -f 64
 ```
+
+To test with custom JSON, use the `json` parameter. For example, the two-frame test case below:
+
+```
+python -m ectf25.utils.tester --port COM6 -s secrets\secrets.json json frames/test_f_2.json
+```
+
 
 ## Running the Satellite and Encoder
 

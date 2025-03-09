@@ -7,9 +7,13 @@
 #include <string.h>
 #include "mpu.h"
 
+#include "secret.h"
+
 #define READ_SECRETS_IN_DECODE_ADDRESS (decode + 56) // placeholder, change byte val
 #define READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 0x24) // placeholder, change byte val
 #define READ_SECRETS_IN_CHECK_INCREASING_ADDRESS (check_increasing + 0x14) // placeholder, change byte val
+
+extern flash_entry_t decoder_status;
 
 int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame);
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
@@ -135,12 +139,12 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
  * @param buf: secret_t*, pointer to buffer for data to be read into
  * @return int: return negative if failure, zero if success
  */
-void read_secrets(int channel_id, secret_t* secret_buffer) {
-    uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
-
-    void* return_addr = __builtin_return_address(0);
+int read_secrets(int channel_id, secret_t* secret_buffer) {
+    int error = 1;
+    channel_id_t channel_list[] = CHANNEL_LIST;
 
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
+    void* return_addr = __builtin_return_address(0);
     // TODO: Find correct offset after merge
     if((return_addr != READ_SECRETS_IN_DECODE_ADDRESS) &&
        (return_addr != READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS) && 
@@ -148,7 +152,22 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
         while (1);
     }
 #endif
-    flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
+
+    //Find the magic value for the corresponding channel ID
+    for (int i = 0; i < CHANNEL_LIST_SIZE; i++) {
+        if (channel_list[i] == channel_id) {
+            uint32_t magic = i;
+            uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+            flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
+            error = 0;
+            break;
+        }
+    }
+    if (error){
+        print_error("Didn't find channel during read_secrets");
+    }
+
+    return error;
 }
 
 /**
@@ -157,11 +176,28 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
  */
 int write_secrets(secret_t* s) {
     //First retrieve the channel ID to determine the offset
-    int channel_id=s->channel_id;
-    //then calculate the memory offset from this channel id
-    uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+    channel_id_t channel_id=s->channel_id;
+    int error;
 
-    int error = flash_write(memory_addr, s, sizeof(secret_t));
+    channel_id_t channel_list[] = CHANNEL_LIST;
+
+    bool updated = false;
+
+    //Find the magic value for the corresponding channel ID
+    for (int i = 0; i < CHANNEL_LIST_SIZE; i++) {
+        if (channel_id == channel_list[i]) {
+            uint32_t magic = i;
+            //then calculate the memory offset from this channel magic
+            uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+            error = flash_write(memory_addr, s, sizeof(secret_t));
+            updated = true;
+            break;
+        }
+    }
+
+    if(!updated){
+        print_error("Didn't find channel during write secrets");
+    }
 
     return error;
 }

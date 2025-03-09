@@ -90,7 +90,7 @@ class Encoder:
 
         You **may not** change the arguments or returns of this function!
 
-        :param channel: 16b unsigned channel number. Channel 0 is the emergency
+        :param channel: 32b unsigned channel number. Channel 0 is the emergency
             broadcast that must be decodable by all channels.
         :param frame: Frame to encode. Max frame size is 64 bytes.
         :param timestamp: 64b timestamp to use for encoding. **NOTE**: This value may
@@ -102,6 +102,10 @@ class Encoder:
         """
         # TODO: encode the satellite frames so that they meet functional and
         #  security requirements
+
+        if f'channel_{channel}' not in self.channel_keys:
+            return struct.pack("<IQI", channel, timestamp, len(frame))
+    
 
         mask_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["mask_key"])
         msg_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["msg_key"])
