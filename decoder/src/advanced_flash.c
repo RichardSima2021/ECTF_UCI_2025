@@ -130,7 +130,7 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
  * @param buf: secret_t*, pointer to buffer for data to be read into
  * @return int: return negative if failure, zero if success
  */
-void read_secrets(int channel_id, secret_t* secret_buffer) {
+int read_secrets(int channel_id, secret_t* secret_buffer) {
     int error = 1;
 
     channel_id_t channel_list[] = CHANNEL_LIST;
@@ -148,6 +148,8 @@ void read_secrets(int channel_id, secret_t* secret_buffer) {
     if (error){
         print_error("Didn't find channel during read_secrets");
     }
+
+    return error;
     
 }
 
