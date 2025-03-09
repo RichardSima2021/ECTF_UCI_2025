@@ -238,8 +238,8 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
 
     // Pull individual values from temp_subscription_arr
     subscription_info->decoder_id = (temp_subscription_arr[3] << 24) + (temp_subscription_arr[2] << 16) + (temp_subscription_arr[1] << 8) + (temp_subscription_arr[0]);
-    subscription_info->start_timestamp = (temp_subscription_arr[4]) + (temp_subscription_arr[5] << 8) + (temp_subscription_arr[6] << 16) + (temp_subscription_arr[7] << 24) + (temp_subscription_arr[8] << 32) + (temp_subscription_arr[9] << 40) + (temp_subscription_arr[10] << 48) + (temp_subscription_arr[11] << 56);
-    subscription_info->end_timestamp = (temp_subscription_arr[12]) + (temp_subscription_arr[13] << 8) + (temp_subscription_arr[14] << 16) + (temp_subscription_arr[15] << 24) + (temp_subscription_arr[16] << 32) + (temp_subscription_arr[17] << 40) + (temp_subscription_arr[18] << 48) + (temp_subscription_arr[19] << 56);
+    subscription_info->start_timestamp = ((timestamp_t)temp_subscription_arr[4]) + ((timestamp_t)temp_subscription_arr[5] << 8) + ((timestamp_t)temp_subscription_arr[6] << 16) + ((timestamp_t)temp_subscription_arr[7] << 24) + ((timestamp_t)temp_subscription_arr[8] << 32) + ((timestamp_t)temp_subscription_arr[9] << 40) + ((timestamp_t)temp_subscription_arr[10] << 48) + ((timestamp_t)temp_subscription_arr[11] << 56);
+    subscription_info->end_timestamp = ((timestamp_t)temp_subscription_arr[12]) + ((timestamp_t)temp_subscription_arr[13] << 8) + ((timestamp_t)temp_subscription_arr[14] << 16) + ((timestamp_t)temp_subscription_arr[15] << 24) + ((timestamp_t)temp_subscription_arr[16] << 32) + ((timestamp_t)temp_subscription_arr[17] << 40) + ((timestamp_t)temp_subscription_arr[18] << 48) + ((timestamp_t)temp_subscription_arr[19] << 56);
     
     return 0;  // Success
 }
