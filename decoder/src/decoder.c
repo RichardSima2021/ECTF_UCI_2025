@@ -212,7 +212,7 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
     */
 
     // Alignment issue
-    uint8_t temp_subscription_arr[20];
+    uint8_t temp_subscription_arr[21]; // 20 char + null terminator
 
     // Extract the interwoven message into their respective character arrays
     for (int i = 0; i < 40; i++) {
@@ -335,7 +335,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
     update.channel = packet->channel;
 
-    uint8_t chksm [20];
+    uint8_t chksm [21]; // 20 chars + null term
     memset(chksm, 0, 20);
 
     if (extract(interwoven_decrypted, &update, chksm) != 0) {
