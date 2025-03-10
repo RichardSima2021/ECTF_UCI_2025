@@ -9,9 +9,8 @@
 
 #include "secret.h"
 
-#define READ_SECRETS_IN_DECODE_ADDRESS (decode + 56) // placeholder, change byte val
-#define READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 0x24) // placeholder, change byte val
-#define READ_SECRETS_IN_CHECK_INCREASING_ADDRESS (check_increasing + 0x14) // placeholder, change byte val
+#define READ_SECRETS_IN_DECODE_ADDRESS (decode + 58) // placeholder, change byte val
+#define READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 40) // placeholder, change byte val
 
 extern flash_entry_t decoder_status;
 
@@ -139,7 +138,7 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
  * @param buf: secret_t*, pointer to buffer for data to be read into
  * @return int: return negative if failure, zero if success
  */
-int read_secrets(int channel_id, secret_t* secret_buffer) {
+__attribute__((noinline)) int read_secrets(int channel_id, secret_t* secret_buffer) {
     int error = 1;
     channel_id_t channel_list[] = CHANNEL_LIST;
 
@@ -147,9 +146,9 @@ int read_secrets(int channel_id, secret_t* secret_buffer) {
     void* return_addr = __builtin_return_address(0);
     // TODO: Find correct offset after merge
     if((return_addr != READ_SECRETS_IN_DECODE_ADDRESS) &&
-       (return_addr != READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS) && 
-       (return_addr != READ_SECRETS_IN_CHECK_INCREASING_ADDRESS) ){
-        while (1);
+       (return_addr != READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS)) {
+        print_error("Failing in read_secrets");
+        // while (1);
     }
 #endif
 

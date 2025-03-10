@@ -7,14 +7,14 @@
 
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int update_current_timestamp(int channel_id, timestamp_t new_timestamp);
-void read_secrets(int channel_id, secret_t* secret_buffer);
+int read_secrets(int channel_id, secret_t* secret_buffer);
 
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 22) // placeholder
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 0x32) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 16) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 18) // placeholder
 
-#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 48) // TODO, placeholder currently
-#define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 0x16A) // TODO, placeholder
-#define PRIVILEGED_WRITE_IN_UPDATE_CURRENT_TIMESTAMP_ADDRESS (update_current_timestamp + 0x26) // TODO, placeholder
+#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 90) // TODO, placeholder currently
+
+#define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 280) // TODO, placeholder
 
 #define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 22)
 
@@ -59,12 +59,12 @@ uint8_t mpu_setup() {
 
     // Decoder Status Region
     MPU->RNR = 6;
-    MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 3 * MXC_FLASH_PAGE_SIZE;
+    MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 2 * MXC_FLASH_PAGE_SIZE;
     MPU->RASR = (MPU_DEFS_RASR_SIZE_4KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RW_USER_RO | MPU_RASR_ENABLE_Msk);// | MPU_EXECUTION_DISABLE
 
     // Secrets Region
     MPU->RNR = 7;
-    MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 2 * MXC_FLASH_PAGE_SIZE; 
+    MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 3 * MXC_FLASH_PAGE_SIZE; 
     MPU->RASR = (MPU_DEFS_RASR_SIZE_4KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RO | MPU_RASR_ENABLE_Msk);// | MPU_EXECUTION_DISABLE
     //MPU->RASR = (MPU_DEFS_RASR_SIZE_8KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_RO | MPU_RASR_ENABLE_Msk);
 
@@ -90,7 +90,7 @@ uint8_t mpu_setup() {
  * @brief SVC Handler
  * @details This function is called when an SVC interrupt is triggered. It clears the control bit for privileged mode.
  */
-void SVC_Handler(void) {
+__attribute__((noinline)) void SVC_Handler(void) {
     __set_CONTROL(__get_CONTROL() & ~0x1);
     __ISB();
 
@@ -106,7 +106,7 @@ void SVC_Handler(void) {
 } 
 
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
-void svc_handler_c(uint32_t *stack_frame) {
+__attribute__((noinline)) void svc_handler_c(uint32_t *stack_frame) {
     void* return_addr = stack_frame[6];
     char buf[20];
     sprintf(buf, "Ret Addr:   0x%.8x\n", return_addr);
@@ -127,12 +127,14 @@ void svc_handler_c(uint32_t *stack_frame) {
  * @details This function checks if the return address is the flash_privileged_read function 
  *          if it is, it requests privilege by calling the SVC interrupt. It will crash if its not the correct return address.
  */
+__attribute__((noinline))
 void request_privilege() {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
     if(return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET &&
        return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
-        while (1);
+        print_error("Failing in request_privilege");
+        // while (1);
        }
 #endif
     __asm("svc #0");
@@ -155,11 +157,12 @@ void drop_privilege() {
  * @details if the return address is correct, switch to privileged mode, if not crash, if privilege mode is enabled,
  *          read from flash, and then drop privilege
  */
-void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
+__attribute__((noinline)) void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
     if(return_addr != PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS){
-        while (1);
+        print_error("Failing in flash_privileged_read");
+        // while (1);
     }
 #endif
     request_privilege();
@@ -173,12 +176,12 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
  * @details if the return address is correct, switch to privileged mode, if not crash, if privilege mode is enabled,
  *          write to flash, and then drop privilege
  */
-int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
+__attribute__((noinline)) int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0); 
-    if ((return_addr != PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS) 
-        && (return_addr != PRIVILEGED_WRITE_IN_UPDATE_CURRENT_TIMESTAMP_ADDRESS )){
-        while (1);
+    if ((return_addr != PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS)){
+        print_error("Failing in flash_privileged_write");
+        // while (1);
     }
 #endif
     request_privilege();

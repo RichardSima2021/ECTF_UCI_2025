@@ -60,6 +60,7 @@
 flash_entry_t decoder_status;
 
 timestamp_t current_timestamp;
+bool global_freshness;
 
 
 /**********************************************************
@@ -76,7 +77,7 @@ int is_subscribed(channel_id_t channel) {
     if (channel == EMERGENCY_CHANNEL) {
         return 1;
     }
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     // Check if the decoder has has a subscription
     for (int i = 1; i <= MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].id == channel && decoder_status.subscribed_channels[i].active) {
@@ -145,7 +146,7 @@ int list_channels() {
     pkt_len_t len;
 
     resp.n_channels = 0;
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     for (uint32_t i = 1; i <= MAX_CHANNEL_COUNT; i++) {
         if (decoder_status.subscribed_channels[i].active) {
@@ -252,14 +253,13 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
  * 
 */
 void reset_channel(int i) {
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    //flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
-    decoder_status.subscribed_channels[i].fresh = false;
-    flash_erase_page(FLASH_STATUS_ADDR);
-    flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    // flash_erase_page(FLASH_STATUS_ADDR);
+    // flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 }
 
 /** @brief Helper function to check if duplicate channel ids exist which are active
@@ -269,7 +269,7 @@ void reset_channel(int i) {
  *  @return 0 upon none found, 1 if found duplicate
 */
 bool found_duplicate_channel_id() {
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     int i;
     int j;
     for (i = 0; i <= MAX_CHANNEL_COUNT; i++) {
@@ -379,7 +379,7 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     }
 
     // 6.
-    flash_privileged_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
+    flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     bool modified = false;
     int active_channel = 0;
@@ -408,7 +408,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
                 // set end timestamp
                 decoder_status.subscribed_channels[i].end_timestamp = update.end_timestamp;
                 // set fresh flag
-                decoder_status.subscribed_channels[i].fresh = true;
                 modified = true;
                 active_channel++;
             }
@@ -572,6 +571,7 @@ void init() {
     uint32_t boot_flag;
 
     current_timestamp = 0;
+    global_freshness = true;
 
     // Read starting flash values into our flash status struct
     MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
@@ -597,14 +597,12 @@ void init() {
             subscription[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
             subscription[i].active = false;
             subscription[i].id = DEFAULT_CHANNEL_ID;
-            subscription[i].fresh = false;
         }
 
         subscription[0].start_timestamp = 0;
         subscription[0].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
         subscription[0].active = true;
         subscription[0].id = 0;
-        subscription[0].fresh = true;
         
 
         // Write the starting channel subscriptions into flash.
@@ -634,6 +632,7 @@ void init() {
         // if uart fails to initialize, do not continue to execute
         while (1);
     }
+
 
     // Last thing we do is set up MPU to set up read/write accesses
     mpu_setup();

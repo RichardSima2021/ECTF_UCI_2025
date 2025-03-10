@@ -121,7 +121,6 @@ typedef struct {
     channel_id_t id;
     timestamp_t start_timestamp;
     timestamp_t end_timestamp;
-    bool fresh;
 } channel_status_t;
 
 typedef struct {
