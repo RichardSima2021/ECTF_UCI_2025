@@ -108,12 +108,14 @@ __attribute__((noinline)) void SVC_Handler(void) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
 __attribute__((noinline)) void svc_handler_c(uint32_t *stack_frame) {
     void* return_addr = stack_frame[6];
-    char buf[20];
-    sprintf(buf, "Ret Addr:   0x%.8x\n", return_addr);
+
+    char buf[80];
+    sprintf(buf, "Ret Addr in svc_handler:   0x%.8x\n", return_addr);
     print_debug(buf);
-    sprintf(buf, "Check Addr: 0x%.8x\n", SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET);
+    sprintf(buf, "Check Addr of SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET: 0x%.8x\n", SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET);
     print_debug(buf);
     printf("!!!!!!!!!!! 0x.8%x !!!!!!!!!!!!\n", return_addr);
+
     if ((return_addr+1) != SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET) {
         print_debug("Invalid SVC call, crashing...\n");
         while(1);
@@ -131,6 +133,13 @@ __attribute__((noinline))
 void request_privilege() {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
+
+    char buf[80];
+    sprintf(buf, "Ret Addr in request_privilege:   0x%.8x\n", return_addr);
+    print_debug(buf);
+    sprintf(buf, "Check Addr of REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET: 0x%.8x\n", REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET);
+    print_debug(buf);
+
     if(return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET &&
        return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
         // print_error("Failing in request_privilege");
@@ -160,6 +169,13 @@ void drop_privilege() {
 __attribute__((noinline)) void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
+
+    char buf[80];
+    sprintf(buf, "Ret Addr in flash_privileged_read:   0x%.8x\n", return_addr);
+    print_debug(buf);
+    sprintf(buf, "Check Addr of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: 0x%.8x\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS);
+    print_debug(buf);
+
     if(return_addr != PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS){
         // print_error("Failing in flash_privileged_read");
         while (1);

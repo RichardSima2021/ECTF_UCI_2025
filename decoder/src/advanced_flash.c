@@ -145,6 +145,13 @@ int read_secrets(int channel_id, secret_t* secret_buffer) {
 
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
+
+    char buf[80];
+    sprintf(buf, "Ret Addr in read_secerts:   0x%.8x\n", return_addr);
+    print_debug(buf);
+    sprintf(buf, "Check Addr of READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS: 0x%.8x\n", READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS);
+    print_debug(buf);
+
     // TODO: Find correct offset after merge
     if((return_addr != READ_SECRETS_IN_DECODE_ADDRESS) &&
        (return_addr != READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS)) {
