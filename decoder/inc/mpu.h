@@ -14,8 +14,8 @@
 #include "random.h"
 
 // change to `#define` to enable checking return pointers
-//#undef CONDITIONAL_PRIV_ESCALATION_ENABLED
-#define CONDITIONAL_PRIV_ESCALATION_ENABLED 0
+#undef CONDITIONAL_PRIV_ESCALATION_ENABLED
+//#define CONDITIONAL_PRIV_ESCALATION_ENABLED 0
 
 #define MPU_DEFS_RASR_SIZE_32B (0x04 << MPU_RASR_SIZE_Pos)
 #define MPU_DEFS_RASR_SIZE_64B (0x05 << MPU_RASR_SIZE_Pos)
