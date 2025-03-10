@@ -18,8 +18,6 @@ int read_secrets(int channel_id, secret_t* secret_buffer);
 
 #define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 22)
 
-#undef CONDITIONAL_PRIV_ESCALATION_ENABLED
-
 /**
 * @brief    Setup the MPU
 * @details  This function sets up the MPU to protect the ROM and Flash memory regions
