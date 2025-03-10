@@ -133,8 +133,8 @@ void request_privilege() {
     void* return_addr = __builtin_return_address(0);
     if(return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET &&
        return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
-        print_error("Failing in request_privilege");
-        // while (1);
+        // print_error("Failing in request_privilege");
+        while (1);
        }
 #endif
     __asm("svc #0");
@@ -161,8 +161,8 @@ __attribute__((noinline)) void flash_privileged_read(uint32_t address, void *buf
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
     if(return_addr != PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS){
-        print_error("Failing in flash_privileged_read");
-        // while (1);
+        // print_error("Failing in flash_privileged_read");
+        while (1);
     }
 #endif
     request_privilege();
@@ -180,8 +180,8 @@ __attribute__((noinline)) int flash_privileged_write(uint32_t address, void* buf
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0); 
     if ((return_addr != PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS)){
-        print_error("Failing in flash_privileged_write");
-        // while (1);
+        // print_error("Failing in flash_privileged_write");
+        while (1);
     }
 #endif
     request_privilege();
