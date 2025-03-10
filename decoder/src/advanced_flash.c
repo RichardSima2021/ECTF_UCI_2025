@@ -147,9 +147,9 @@ int read_secrets(int channel_id, secret_t* secret_buffer) {
     void* return_addr = __builtin_return_address(0);
 
     char buf[80];
-    sprintf(buf, "Ret Addr in read_secerts:   0x%.8x\n", return_addr);
+    sprintf(buf, "Ret Addr offset in read_secerts:   %d\n", return_addr - (void*)update_subscription);
     print_debug(buf);
-    sprintf(buf, "Check Addr of READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS: 0x%.8x\n", READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS);
+    sprintf(buf, "Check Addr offset of READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS: %d\n", READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS - update_subscription);
     print_debug(buf);
 
     // TODO: Find correct offset after merge

@@ -12,7 +12,7 @@ int read_secrets(int channel_id, secret_t* secret_buffer);
 #define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 80) // placeholder
 #define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 24) // placeholder
 
-#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 160) // TODO, placeholder currently
+#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 172) // TODO, placeholder currently
 
 #define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 290) // TODO, placeholder
 
@@ -90,7 +90,8 @@ uint8_t mpu_setup() {
  * @brief SVC Handler
  * @details This function is called when an SVC interrupt is triggered. It clears the control bit for privileged mode.
  */
-__attribute__((noinline)) void SVC_Handler(void) {
+__attribute__((noinline))
+void SVC_Handler(void) {
     __set_CONTROL(__get_CONTROL() & ~0x1);
     __ISB();
 
@@ -106,15 +107,15 @@ __attribute__((noinline)) void SVC_Handler(void) {
 } 
 
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
-__attribute__((noinline)) void svc_handler_c(uint32_t *stack_frame) {
+__attribute__((noinline))
+void svc_handler_c(uint32_t *stack_frame) {
     void* return_addr = stack_frame[6];
 
     char buf[80];
-    sprintf(buf, "Ret Addr in svc_handler:   0x%.8x\n", return_addr);
+    sprintf(buf, "Ret Addr offset in svc_handler:   0x%.8x\n", return_addr - (void*)request_privilege);
     print_debug(buf);
-    sprintf(buf, "Check Addr of SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET: 0x%.8x\n", SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET);
+    sprintf(buf, "Check Addr offset of SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET: 0x%.8x\n", SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET - request_privilege);
     print_debug(buf);
-    printf("!!!!!!!!!!! 0x.8%x !!!!!!!!!!!!\n", return_addr);
 
     if ((return_addr+1) != SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET) {
         print_debug("Invalid SVC call, crashing...\n");
@@ -135,9 +136,9 @@ void request_privilege() {
     void* return_addr = __builtin_return_address(0);
 
     char buf[80];
-    sprintf(buf, "Ret Addr in request_privilege:   0x%.8x\n", return_addr);
+    sprintf(buf, "Ret Addr offset in request_privilege: %d\n", return_addr - (void*)flash_privileged_read);
     print_debug(buf);
-    sprintf(buf, "Check Addr of REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET: 0x%.8x\n", REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET);
+    sprintf(buf, "Check Addr offset of REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET: %d\n", REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET - flash_privileged_read);
     print_debug(buf);
 
     if(return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET &&
@@ -166,14 +167,15 @@ void drop_privilege() {
  * @details if the return address is correct, switch to privileged mode, if not crash, if privilege mode is enabled,
  *          read from flash, and then drop privilege
  */
-__attribute__((noinline)) void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
+__attribute__((noinline))
+void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
 
     char buf[80];
-    sprintf(buf, "Ret Addr in flash_privileged_read:   0x%.8x\n", return_addr);
+    sprintf(buf, "Ret Addr offset in flash_privileged_read:   %d\n", return_addr - (void*)read_secrets);
     print_debug(buf);
-    sprintf(buf, "Check Addr of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: 0x%.8x\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS);
+    sprintf(buf, "Check Addr of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: %d\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - read_secrets);
     print_debug(buf);
 
     if(return_addr != PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS){
@@ -192,7 +194,8 @@ __attribute__((noinline)) void flash_privileged_read(uint32_t address, void *buf
  * @details if the return address is correct, switch to privileged mode, if not crash, if privilege mode is enabled,
  *          write to flash, and then drop privilege
  */
-__attribute__((noinline)) int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
+__attribute__((noinline))
+int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0); 
     if ((return_addr != PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS)){
