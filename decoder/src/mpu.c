@@ -9,14 +9,14 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int update_current_timestamp(int channel_id, timestamp_t new_timestamp);
 int read_secrets(int channel_id, secret_t* secret_buffer);
 
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 16) // placeholder
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 18) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 80) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 24) // placeholder
 
-#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 108) // TODO, placeholder currently
+#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 160) // TODO, placeholder currently
 
 #define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 290) // TODO, placeholder
 
-#define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 22)
+#define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 78)
 
 /**
 * @brief    Setup the MPU
