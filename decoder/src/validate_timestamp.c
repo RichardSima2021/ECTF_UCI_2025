@@ -19,7 +19,6 @@ void clean_up(){
 
 int check_two_timestamp(timestamp_t plaintext_ts, timestamp_t extracted_timestamp){
     //Encoded frame looks like this: Channelid || Timestamp || C1 || C2 
-
     // Compare timestamps, return 1 if they match, 0 if not
     return plaintext_ts == extracted_timestamp;
 }
@@ -41,11 +40,7 @@ int extract_channel_idx(int channel_id) {
 int check_increasing(int channel_id, timestamp_t extracted_timestamp) {
     print_debug("Checking increasing");
     //extarct the subscription information
-    // request_privilege();
-    // MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-    // drop_privilege();
-
-    //2. check if the timestamp is strictly greater than that
+    //check if the timestamp is strictly greater than that
     int idx;
     idx = extract_channel_idx(channel_id);
     if (idx == -1) {
@@ -127,16 +122,3 @@ int validate_timestamp(int channel_id, timestamp_t plaintext_ts, timestamp_t ext
     return 0;
 
 }
-
-
-// int update_current_timestamp(int channel_id, timestamp_t new_timestamp){
-//     //this function assumes that decoder_status has already been extracted from the flash
-//     int idx=extract_channel_idx(channel_id);
-//     if(idx==-1){
-//         return 0;
-//     }
-    
-//     decoder_status.subscribed_channels[idx].current_timestamp=new_timestamp;
-//     flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
-//     return 0;   // Idk if this is a flag used later
-// }
