@@ -12,9 +12,9 @@ int read_secrets(int channel_id, secret_t* secret_buffer);
 #define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 24) // placeholder
 #define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 18) // placeholder
 
-#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 108) // TODO, placeholder currently
+#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 90) // TODO, placeholder currently
 
-#define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 290) // TODO, placeholder
+#define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 296) // TODO, placeholder
 
 #define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 22)
 
