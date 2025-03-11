@@ -9,14 +9,14 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int update_current_timestamp(int channel_id, timestamp_t new_timestamp);
 int read_secrets(int channel_id, secret_t* secret_buffer);
 
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 88) // placeholder
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 24) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 24) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 18) // placeholder
 
-#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 172) // TODO, placeholder currently
+#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 108) // TODO, placeholder currently
 
 #define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 290) // TODO, placeholder
 
-#define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 78)
+#define SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET (request_privilege + 22)
 
 /**
 * @brief    Setup the MPU
@@ -135,11 +135,11 @@ void request_privilege() {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
 
-    char buf[80];
-    sprintf(buf, "Ret Addr offset in request_privilege: %d\n", return_addr - (void*)flash_privileged_read);
-    print_debug(buf);
-    sprintf(buf, "Check Addr offset of REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET: %d\n", REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET - flash_privileged_read);
-    print_debug(buf);
+    /*char buf[80];*/
+    /*sprintf(buf, "Ret Addr offset in request_privilege: %d\n", return_addr - (void*)flash_privileged_read);*/
+    /*print_debug(buf);*/
+    /*sprintf(buf, "Check Addr offset of REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET: %d\n", REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET - flash_privileged_read);*/
+    /*print_debug(buf);*/
 
     if(return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET &&
        return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
@@ -172,13 +172,13 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
 
-    char buf[80];
-    sprintf(buf, "Ret Addr offset in flash_privileged_read:   %d\n", return_addr - (void*)read_secrets);
-    print_debug(buf);
-    sprintf(buf, "Check Addr offset of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: %d\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - read_secrets);
-    print_debug(buf);
+    /*char buf[80];*/
+    /*sprintf(buf, "Ret Addr offset in flash_privileged_read:   %d\n", return_addr - (void*)read_secrets);*/
+    /*print_debug(buf);*/
+    /*sprintf(buf, "Check Addr offset of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: %d\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - read_secrets);*/
+    /*print_debug(buf);*/
 
-    if(return_addr < PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS && PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 8 < return_addr){
+    if(!(PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS <= return_addr && return_addr <= PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 8)) {
         // print_error("Failing in flash_privileged_read");
         while (1);
     }
