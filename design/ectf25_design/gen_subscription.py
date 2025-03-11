@@ -48,39 +48,15 @@ def gen_subscription(
     # Load the json of the secrets file
     secrets = json.loads(secrets)
 
-
-    #sub_key = secrets[f'channel_{channel}']['subscription_key']
-
-    #sub_info = struct.pack("<IQQI", device_id, start, end, channel)
     sub_info = struct.pack("<IQQ", device_id, start, end)
-    #check_sum = secrets[f'channel_{channel}']['check_sum']
-    #check_sum = ast.literal_eval(get_channel_key(channel, secrets)['check_sum'])
     check_sum = bytes.fromhex(get_channel_key(channel, secrets)['check_sum'])
-    #check_sum_channel = bytes(check_sum, 'utf-8')
-    #check_sum_channel = ast.literal_eval(check_sum)
-
-    #print(check_sum_channel)
-    # print("sub and check: ", sub_info, check_sum)
 
     interwoven_bytestring = interweave(sub_info, check_sum)
-
-    # print(interwoven_bytestring)
     
     encrypted_data = encrypt(interwoven_bytestring, secrets, channel)
 
     channel_num = channel.to_bytes(4, byteorder="little", signed=False)
 
-
-    '''
-    print("interwoven_bytestring length: ", len(interwoven_bytestring))
-    print("encrypted_data length: ", len(encrypted_data))
-    print("ret length: ", len(ret))
-    print("ret: ", ret)
-    print("ret + encrypted_data length: ", len(ret + encrypted_data))
-    print("ret + encrpted_data: ", ret + encrypted_data)
-    '''
-    # print(channel_num + encrypted_data)
-    # print(len(channel_num + encrypted_data))
     return channel_num + encrypted_data
 
     
@@ -113,24 +89,16 @@ def get_channel_key(channel, secrets):
 
 def encrypt(interwoven_bytestring, secrets, channel):
 
-    #print("interwoven_bytestring: ", interwoven_bytestring)
-
     data = pad(interwoven_bytestring, 16)
-    #print("padded length: ", len(data))
-    #subscription_key = ast.literal_eval(get_channel_key(channel, secrets)['subscription_key'])
+
     subscription_key = bytes.fromhex(get_channel_key(channel, secrets)['subscription_key'])
     iv = secret_gen.token_bytes(16)
-    # iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
 
     aes = AES.new(subscription_key, AES.MODE_CBC, iv)
     cipher = aes.encrypt(data)
 
     return cipher + iv
     
-
-
-
-
 
 def parse_args():
     """Define and parse the command line arguments
@@ -190,32 +158,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # secrets = {'checksum':['abcdblablablaabcdblablab' for i in range(10)]}
-    # device_id = 1
-    # start = 2
-    # end = 6
-    # channel = 8
-    
-    # sub_info = struct.pack("<IQQI", device_id, start, end, channel)
-    # check_sum_channel = secrets['checksum'][channel].encode('utf-8')
-
-    # print(type(sub_info))
-    # print(sub_info)
-    # print(type(check_sum_channel))
-    # print(check_sum_channel)
-    # print(len(sub_info), len(check_sum_channel))
-
-    # sub_info = bytes(24)
-    # check_sum_channel = bytes([0xFF] * 24)
-    # interwoven_bytestring = interweave(sub_info, check_sum_channel)
-
-    # print(interwoven_bytestring)
-
-    # print(' '.join(f"{byte:08b}" for byte in sub_info), end='\n\n')
-    # print(' '.join(f"{byte:08b}" for byte in check_sum_channel), end='\n\n')
-    # print(' '.join(f"{byte:08b}" for byte in interwoven_bytestring), end='\n\n')
-
 
 
     

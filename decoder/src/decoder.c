@@ -1,4 +1,4 @@
-/**
+    /**
  * @file    decoder.c
  * @author  Samuel Meyers
  * @brief   eCTF Decoder Example Design Implementation
@@ -191,25 +191,10 @@ int validate(uint8_t *chksm, uint8_t *check_sum) {
  *  @return 0 upon success. -1 if error
  */
 int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_info, uint8_t *chksm) {
-    // Validate intrwvn_msg/output pointers
-    // (Nest for glitch protection)
     if (intrwvn_msg == NULL) return -1;
     if (subscription_info == NULL) return -1;
     if (chksm == NULL) return -1;
 
-
-    // Expecting 48 bytes from interwoven message
-    // 20 bytes for the subscription info (device ID, start timestamp, end timestamp)
-    // 20 bytes for the checksum
-    // 8 bytes for padding (Junk, ignore)
-
-    /*
-        Questions:
-            Another security issue:
-                - As it stands, arguments fed into this function are to be
-                  staticly allocated character arrays stored in stack.
-                  Is this safe?
-    */
 
     // Alignment issue
     uint8_t temp_subscription_arr[21]; // 20 char + null terminator
@@ -228,14 +213,6 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
     temp_subscription_arr[20] = '\0';
     chksm[20] = '\0';
 
-    // Copy the temporary subscription array into the subscription_info struct
-    /*
-        timestamp_t uint64_t
-        decoder_id_t uint32_t
-
-        | decoder_id  | start_timestamp | end_timestamp  |
-        |   4 bytes   |     8 bytes     |    8 bytes     |
-    */
 
     // Pull individual values from temp_subscription_arr
     subscription_info->decoder_id = (temp_subscription_arr[3] << 24) + (temp_subscription_arr[2] << 16) + (temp_subscription_arr[1] << 8) + (temp_subscription_arr[0]);
@@ -253,13 +230,10 @@ int extract(uint8_t *intrwvn_msg, subscription_update_packet_t *subscription_inf
  * 
 */
 void reset_channel(int i) {
-    //flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     decoder_status.subscribed_channels[i].id = DEFAULT_CHANNEL_ID;
     decoder_status.subscribed_channels[i].start_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].end_timestamp = DEFAULT_CHANNEL_TIMESTAMP;
     decoder_status.subscribed_channels[i].active = false;
-    // flash_erase_page(FLASH_STATUS_ADDR);
-    // flash_privileged_write(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 }
 
 /** @brief Helper function to check if duplicate channel ids exist which are active
@@ -268,7 +242,7 @@ void reset_channel(int i) {
  * 
  *  @return 0 upon none found, 1 if found duplicate
 */
-bool found_duplicate_channel_id() {
+int found_duplicate_channel_id() {
     flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     int i;
     int j;
@@ -298,20 +272,6 @@ bool found_duplicate_channel_id() {
 */
 //                                         this update info will be updated later to be encoded input
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
-    //volatile char pad[500] = {0};
-    /*   
-    2. Update subscription 
-        1. Extract first four bytes to get channel ID
-        1.5. Extract rest of encrypted interwoven bytestring
-        2. Retrieve secrets from flash to find channel with given ID
-        3. Use subscription key from corresponding secret_t to decrypt packet
-        4. De-interweave to get concatenated sub info
-        5. Extract sub info
-        5.25 Validate checksum
-        5.5  Check for duplicate channel
-        5.75 Check for emergency channel
-        6. Update sub info
-    */
 
     secret_t channel_secrets;
     uint8_t interwoven_decrypted[48];
@@ -323,9 +283,6 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
     update.end_timestamp = 0;
     update.start_timestamp = 0;
 
-    // encrypted_packet = channel_id (4 bytes) + ciphertext (48 bytes) + IV (16 bytes)
-    //      ciphertext  = 40 bytes interweaved + 8 bytes padding
-
     if(read_secrets(packet->channel, &channel_secrets)){
         return -1;
     }
@@ -334,6 +291,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
 
 
     update.channel = packet->channel;
+
+    if (update.channel == EMERGENCY_CHANNEL) {
+        STATUS_LED_RED();
+        print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
+        return -1;
+    }
 
     uint8_t chksm [21]; // 20 chars + null term
     memset(chksm, 0, 20);
@@ -365,20 +328,12 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet) {
         return -1;
     }
 
-    // Emergency channel fix
-    if (update.channel == EMERGENCY_CHANNEL) {
-        STATUS_LED_RED();
-        print_error("Failed to update subscription - cannot subscribe to emergency channel\n");
-        return -1;
-    }
-
     if (update.start_timestamp >= update.end_timestamp){
         STATUS_LED_RED();
         print_error("start_timestamp >= end_timestamp");
         return -1;
     }
 
-    // 6.
     flash_read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
 
     bool modified = false;
@@ -491,8 +446,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
 
     print_debug("Subscription Valid\n");
 
-    // Todo: Decrypt c1 and c2, and validate timestamps
-
     // Decrypt c1 first
     
     // Construct the key for c1
@@ -523,10 +476,17 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     memcpy(ts_decrypted, ts_prime + 8, sizeof(timestamp_t));
     timestamp_decrypted = *(timestamp_t*) ts_decrypted;
 
+    // Validation of Time Stamp Here
+    if (!validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
+        STATUS_LED_RED();
+        sprintf(
+            output_buf,
+            "Invalid timestamp  %llu\n", timestamp_decrypted);
+        print_error(output_buf);
+        return -1;
+    }
 
-    // Start to decrypt c2
-    // Construct the key for c2
-    // XOR data key with the nounce to get the decryption key for c2
+
     if (xorArrays(nonce, 16, data_key, KEY_SIZE, c2_key) != 0) {
         print_error("Failed to XOR nonce and data_key\n");
         return -1;
@@ -538,17 +498,6 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame) {
     // Decrypt c2 with the decryption key and get the frame data
     memset(frame_data, 0, FRAME_SIZE);
     decrypt_sym(new_frame->c2, c2_length, c2_key, new_frame->iv, frame_data);
-
-
-    // TODO: Validation of Time Stamp Here
-    if (!validate_timestamp(channel_id, timestamp, timestamp_decrypted)) {
-        STATUS_LED_RED();
-        sprintf(
-            output_buf,
-            "Invalid timestamp  %llu\n", timestamp_decrypted);
-        print_error(output_buf);
-        return -1;
-    }
 
 
     write_packet(DECODE_MSG, frame_data, new_frame->frame_length);
@@ -577,7 +526,6 @@ void init() {
     MXC_FLC_Read(FLASH_STATUS_ADDR, &decoder_status, sizeof(flash_entry_t));
     MXC_FLC_Read(BOOT_FLAG_ADDR, &boot_flag, sizeof(uint32_t));
     if (boot_flag != FLASH_FIRST_BOOT) {//this is first boot
-    //if (true) {
         /* If this is the first boot of this decoder, mark all channels as unsubscribed.
         *  This data will be persistent across reboots of the decoder. Whenever the decoder
         *  processes a subscription update, this data will be updated.
@@ -640,89 +588,6 @@ void init() {
     drop_privilege();
 }
 
-// /* Code between this #ifdef and the subsequent #endif will
-// *  be ignored by the compiler if CRYPTO_EXAMPLE is not set in
-// *  the projectk.mk file. */
-#ifdef CRYPTO_EXAMPLE
-void crypto_example(void) {
-    // Example of how to utilize included simple_crypto.h
-
-    // This string is 16 bytes long including null terminator
-    // This is the block size of included symmetric encryption
-    char *data = "Crypto Example!";
-    uint8_t ciphertext[BLOCK_SIZE];
-    uint8_t key[KEY_SIZE];
-    uint8_t hash_out[HASH_SIZE];
-    uint8_t decrypted[BLOCK_SIZE];
-
-
-    uint8_t iv[BLOCK_SIZE] = {1};
-
-    char output_buf[128] = {0};
-
-    // // Zero out the key
-    bzero(key, BLOCK_SIZE);
-
-    // // Encrypt example data and print out
-    // encrypt_sym((uint8_t*)data, BLOCK_SIZE, key, , ciphertext);
-    // print_debug("Encrypted data: \n");
-    // print_hex_debug(ciphertext, BLOCK_SIZE);
-
-    // // Hash example encryption results
-    // hash(ciphertext, BLOCK_SIZE, hash_out);
-
-    // // Output hash result
-    // print_debug("Hash result: \n");
-    // print_hex_debug(hash_out, HASH_SIZE);
-
-    // // Decrypt the encrypted message and print out
-    decrypt_sym(ciphertext, BLOCK_SIZE, key, iv, decrypted);
-    sprintf(output_buf, "Decrypted message: %s\n", decrypted);
-    print_debug(output_buf);
-}
-#endif  //CRYPTO_EXAMPLE
-
-
-void flash_test() {
-    char output_buf[BUF_LEN] = {0};
-    uint8_t data[16] = "Hello World!";
-    uint8_t read_data[16] = {0};
-
-    //flash_erase_page(FLASH_STATUS_ADDR);
-    //flash_write(FLASH_STATUS_ADDR, data, sizeof(data));
-    //flash_read(FLASH_STATUS_ADDR, read_data, sizeof(read_data));
-
-    //sprintf(output_buf, "Flash test: %s\n", read_data);
-    //print_debug(output_buf);
-
-    char c;
-    int status;
-    while (1) {
-        c = uart_readbyte(&status);
-        if (c == 'w') {
-            flash_erase_page(FLASH_KEY - MXC_FLASH_PAGE_SIZE);
-            flash_write(FLASH_KEY - MXC_FLASH_PAGE_SIZE, data, sizeof(data));
-            sprintf(output_buf, "Wrote to flash\n", data);
-            print_debug(output_buf);
-        } else if (c == 'r') {
-            flash_read(FLASH_KEY - MXC_FLASH_PAGE_SIZE, read_data, sizeof(read_data));
-            sprintf(output_buf, "Flash test: %s\n", read_data);
-            print_debug(output_buf);
-        }
-        //uart_writebyte(c);
-    }
-}
-
-
-void uart_test() {
-    char c;
-    int status;
-    while (1) {
-        c = uart_readbyte(&status);
-        uart_writebyte(c);
-    }
-}
-
 
 /**********************************************************
  *********************** MAIN LOOP ************************
@@ -741,30 +606,6 @@ int main(void) {
     init();
 
     print_debug("Decoder Booted!\n");
-
-    // #ifdef CRYPTO_EXAMPLE
-
-    // // print_debug("\n\nCrypto Example\n");
-
-    // // uint8_t ciphertext[BLOCK_SIZE] = "Hello, World!";
-    // // uint8_t key[KEY_SIZE];
-    // // uint8_t decrypted[BLOCK_SIZE];
-    // // decrypt_sym(ciphertext, BLOCK_SIZE, key, decrypted);
-    // // print_debug(decrypted);
-
-    // // print_debug("\n\n");
-
-    // crypto_example();
-
-    // #endif
-
-
-    // flash_test();
-    //uart_test();
-
-    // uint8_t data[] = { 0x01, 0x00, 0x00, 0x00, 0x12, 0x39, 0x99, 0xBD, 0x27, 0x78, 0x26, 0xC0, 0xCB, 0x9F, 0x93, 0xB9, 0x27, 0x3B, 0x4B, 0x47, 0xDA, 0x5F, 0xBE, 0xE4, 0x3D, 0xEB, 0x81, 0x6A, 0x3B, 0x65, 0x99, 0xF0, 0x06, 0x4E, 0x27, 0x8D, 0xDA, 0xAE, 0x7E, 0x12, 0x1D, 0xBA, 0xE9, 0xD5, 0x25, 0x9C, 0x5E, 0x5A, 0x32, 0x65, 0x82, 0x28, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 };
-    
-    // update_subscription(68, (encrypted_update_packet *)data);
 
 
 
@@ -789,20 +630,6 @@ int main(void) {
         // Handle list command
         case LIST_MSG:
             STATUS_LED_CYAN();
-
-            #ifdef CRYPTO_EXAMPLE
-                // Run the crypto example
-                // TODO: Remove this from your design
-                crypto_example();
-            #endif // CRYPTO_EXAMPLE
-
-            // Print the boot flag
-            // TODO: Remove this from your design
-            // #ifdef CRYPTO_EXAMPLE
-            //     // Run the crypto example
-            //     // TODO: Remove this from your design
-            //     crypto_example();
-            // #endif // CRYPTO_EXAMPLE
             list_channels();
             break;
 

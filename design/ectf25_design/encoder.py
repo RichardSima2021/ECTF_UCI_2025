@@ -112,11 +112,7 @@ class Encoder:
         subscription_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["subscription_key"])
         data_key = bytes.fromhex(self.channel_keys[f'channel_{channel}']["data_key"])
 
-        # mask_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
-        # msg_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
-        # subscription_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
-        # data_key = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
-
+    
         # Check the key are all 16 bytes long
         assert len(mask_key) == 16, "The mask key is not 16 bytes long"
         assert len(msg_key) == 16, "The message key is not 16 bytes long"
@@ -125,9 +121,7 @@ class Encoder:
 
         nounce = secret_gen.token_bytes(16)
         iv = secret_gen.token_bytes(16)
-        # nounce = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
-        # iv = eval("b'\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01\\x01'")
-
+        
         # Prepare C1 info
         timestamp_prime = nounce[:8] + timestamp.to_bytes(8, 'little') + nounce[8:]
 
