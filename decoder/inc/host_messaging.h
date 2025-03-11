@@ -19,9 +19,16 @@
 #include <stdint.h>
 #include "advanced_uart.h"
 
+#include "random.h"
+
+#undef FREQUENCY_CHECK_ENABLED
+// #define FREQUENCY_CHECK_ENABLED 0
+
 #define CMD_TYPE_LEN sizeof(char)
 #define CMD_LEN_LEN sizeof(uint16_t)
 #define MSG_MAGIC '%'     // '%' - 0x25
+#define BYTE_RANGE 256  // 256 possible byte values (0x00 - 0xFF)
+    
 
 typedef enum {
     DECODE_MSG = 'D',     // 'D' - 0x44
@@ -42,6 +49,9 @@ typedef struct {
 #pragma pack(pop) // Tells the compiler to resume padding struct members
 
 #define MSG_HEADER_SIZE sizeof(msg_header_t)
+
+void get_hex_freq_from_buffer(const unsigned char *buf, size_t length, double output[]);
+double calculate_mic(const double freq_A[], const double freq_B[]);
 
 /** @brief Write len bytes to UART in hex. 2 bytes will be printed for every byte.
  * 
