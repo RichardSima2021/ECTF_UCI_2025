@@ -178,7 +178,7 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
     /*sprintf(buf, "Check Addr offset of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: %d\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - read_secrets);*/
     /*print_debug(buf);*/
 
-    if(!(PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - 24 <= return_addr && return_addr <= PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 24)) {
+    if(!(PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 16 <= return_addr && return_addr <= PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 24)) {
         // print_error("Failing in flash_privileged_read");
         while (1);
     }
