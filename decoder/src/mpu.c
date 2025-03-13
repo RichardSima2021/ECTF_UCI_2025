@@ -111,17 +111,9 @@ __attribute__((noinline))
 void svc_handler_c(uint32_t *stack_frame) {
     void* return_addr = stack_frame[6];
 
-    char buf[80];
-    sprintf(buf, "Ret Addr offset in svc_handler: %d\n", return_addr - (void*)request_privilege);
-    print_debug(buf);
-    sprintf(buf, "Check Addr offset of SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET: %d\n", SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET - request_privilege);
-    print_debug(buf);
-
     if ((return_addr+1) != SVC_HANDLER_IN_REQUEST_PRIVILEGE_OFFSET) {
-        print_debug("Invalid SVC call, crashing...\n");
         while(1);
     }
-    print_debug("Successful SVC call\n");
 }
 #endif
 
