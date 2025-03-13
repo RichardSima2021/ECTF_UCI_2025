@@ -9,10 +9,10 @@ int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int update_current_timestamp(int channel_id, timestamp_t new_timestamp);
 int read_secrets(int channel_id, secret_t* secret_buffer);
 
-#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 24) // placeholder
+#define REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET (flash_privileged_read + 16) // placeholder
 #define REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET (flash_privileged_write + 18) // placeholder
 
-#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 90) // TODO, placeholder currently
+#define PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS (read_secrets + 40) // TODO, placeholder currently
 
 #define PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS (update_subscription + 296) // TODO, placeholder
 
@@ -170,7 +170,7 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
     /*sprintf(buf, "Check Addr offset of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: %d\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - read_secrets);*/
     /*print_debug(buf);*/
 
-    if(!(PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 16 <= return_addr && return_addr <= PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS + 24)) {
+    if(return_addr != PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS) {
         // print_error("Failing in flash_privileged_read");
         while (1);
     }

@@ -18,6 +18,7 @@ int decode(pkt_len_t pkt_len, encrypted_frame_packet_t *new_frame);
 int update_subscription(pkt_len_t pkt_len, encrypted_update_packet *packet);
 int check_increasing(int channel_id, timestamp_t extracted_timestamp);
 
+static channel_id_t channel_list[] = CHANNEL_LIST;
 
 
 /**
@@ -131,6 +132,18 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
     return error;
 }
 
+__attribute__((noinline))
+volatile uint32_t compute_memory_addr(int channel_id) {
+    for (volatile int i = 0; i < CHANNEL_LIST_SIZE; i++) {
+        if (channel_list[i] == channel_id) {
+            uint32_t magic = i;
+            uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
+            return memory_addr;
+        }
+    }
+    return 0;
+}
+
 /**
  * @brief Flash Read Secrets
  * 
@@ -141,7 +154,6 @@ int flash_write(uint32_t address, void* buffer, uint32_t len) {
 __attribute__((noinline))
 int read_secrets(int channel_id, secret_t* secret_buffer) {
     int error = 1;
-    channel_id_t channel_list[] = CHANNEL_LIST;
 
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
@@ -161,20 +173,15 @@ int read_secrets(int channel_id, secret_t* secret_buffer) {
 #endif
 
     //Find the magic value for the corresponding channel ID
-    for (int i = 0; i < CHANNEL_LIST_SIZE; i++) {
-        if (channel_list[i] == channel_id) {
-            uint32_t magic = i;
-            uint32_t memory_addr=magic*sizeof(secret_t)+SECRET_BASE_ADDRESS;
-            flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
-            error = 0;
-            break;
-        }
-    }
-    if (error){
+    volatile uint32_t memory_addr = compute_memory_addr(channel_id);
+    if (memory_addr != 0)
+        flash_privileged_read(memory_addr, secret_buffer, sizeof(secret_t));
+    else {
         print_error("Didn't find channel during read_secrets");
+        return error;
     }
 
-    return error;
+    return 0;
 }
 
 /**
@@ -185,8 +192,6 @@ int write_secrets(secret_t* s) {
     //First retrieve the channel ID to determine the offset
     channel_id_t channel_id=s->channel_id;
     int error;
-
-    channel_id_t channel_list[] = CHANNEL_LIST;
 
     bool updated = false;
 
