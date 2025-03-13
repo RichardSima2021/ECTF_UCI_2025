@@ -38,12 +38,6 @@ void flash_irq(void) {
         MXC_FLC0->intr = ~MXC_F_FLC_INTR_AF;
 }
 
-// Consider enabling these bits
-// Have to enable these two to check the status
-// MXC_F_FLC_INTR_AFIE
-// If bit is 1, interrupt will occur on flash access failure
-// MXC_F_FLC_INTR_DONEIE
-// If bit is 1, interrupt will occur on flash complete
 
 /**
  * @brief Initialize the Advanced Flash Interface
@@ -158,16 +152,8 @@ int read_secrets(int channel_id, secret_t* secret_buffer) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
 
-    /*char buf[80];*/
-    /*sprintf(buf, "Ret Addr offset in read_secerts:   %d\n", return_addr - (void*)update_subscription);*/
-    /*print_debug(buf);*/
-    /*sprintf(buf, "Check Addr offset of READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS: %d\n", READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS - update_subscription);*/
-    /*print_debug(buf);*/
-
-    // TODO: Find correct offset after merge
     if((return_addr != READ_SECRETS_IN_DECODE_ADDRESS) &&
        (return_addr != READ_SECRETS_IN_UPDATE_SUBSCRIPTION_ADDRESS)) {
-        // print_error("Failing in read_secrets");
         while (1);
     }
 #endif
@@ -212,47 +198,4 @@ int write_secrets(secret_t* s) {
     }
 
     return error;
-}
-
-
-// /**
-//  * @brief Write Flash Secret
-//  * @param secret: char*, pointer to a 16 byte string to write, defaulted to offset 9 (for the channel id, for example)
-//  */
-// int write_flash_secret(char* secret) {
-//     //First retrieve the channel ID to determine the offset
-//     int channel_id=9;
-//     //then calculate the memory offset from this channel id
-//     uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
-
-//     //now I need to write into this memory address // the key is not done yet
-//     int error = MXC_FLC_Write(address, 16, secret);
-//     memset(secret,0,16);
-//     return error;
-// }
-
-// /**
-//  * @brief Read Flash Secret
-//  * @param s: char*, pointer to a 16 byte string to be read to, defaulted to offset 9 (for the channel id, for example)
-//  */
-// int read_flash_secret(char* secret) {
-//     //First retrieve the channel ID to determine the offset
-//     int channel_id=9;
-//     //then calculate the memory offset from this channel id
-//     uint32_t memory_addr=channel_id*sizeof(secret_t)+SECRET_BASE_ADDRESS;
-
-//     //now I need to write into this memory address // the key is not done yet
-//     int error = MXC_FLC_Read(address, secret, 16);
-//     return error;
-// }
-
-int hard_read_secrets(int channel_id, secret_t* secret_buffer) {
-    secret_buffer->channel_id = 1;
-    memset(secret_buffer->mask_key, '1', 16);
-    memset(secret_buffer->msg_key, '1', 16);
-    memset(secret_buffer->data_key, '1', 16);
-    memset(secret_buffer->subscription_key, '1', 16);
-    memset(secret_buffer->check_sum, '1', 24);
-    
-    return 1;
 }

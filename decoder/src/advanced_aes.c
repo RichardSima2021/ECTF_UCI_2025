@@ -21,12 +21,7 @@ void aes_set_key() {
 }
 
 int aes_init() {
-// #ifndef MSDK_NO_GPIO_CLK_INIT
-//     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_AES);
-//     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TRNG);
-// #endif
-
-	// Clear control
+    // Clear control
     MXC_AES->ctrl = 0x00;
 	
 
@@ -72,7 +67,6 @@ int encrypt(uint32_t len, uint32_t* data, uint32_t* enc_data) {
 	req.keySize = 0;
 	req.encryption = MXC_AES_ENCRYPT_EXT_KEY;
 
-	// MXC_AES_Init();
 	aes_init();
 
 	MXC_AES_Encrypt(&req);

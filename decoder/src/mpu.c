@@ -48,25 +48,20 @@ uint8_t mpu_setup() {
     MPU->RBAR = MXC_FLASH_MEM_BASE;
     MPU->RASR = (MPU_DEFS_RASR_SIZE_256KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_RO | MPU_RASR_ENABLE_Msk);
 
-    // Peripheral Region
-    // MPU->RNR = 3;
-    // MPU->RBAR = 
-
     // Secrets Overlay Region
     MPU->RNR = 5;
     MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 4 * MXC_FLASH_PAGE_SIZE;
-    MPU->RASR = (MPU_DEFS_RASR_SIZE_32KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_NO_ACCESS | MPU_RASR_ENABLE_Msk);// | MPU_EXECUTION_DISABLE
+    MPU->RASR = (MPU_DEFS_RASR_SIZE_32KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_NO_ACCESS | MPU_RASR_ENABLE_Msk | MPU_EXECUTION_DISABLE);
 
     // Decoder Status Region
     MPU->RNR = 6;
     MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 2 * MXC_FLASH_PAGE_SIZE;
-    MPU->RASR = (MPU_DEFS_RASR_SIZE_4KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RW_USER_RO | MPU_RASR_ENABLE_Msk);// | MPU_EXECUTION_DISABLE
+    MPU->RASR = (MPU_DEFS_RASR_SIZE_4KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RW_USER_RO | MPU_RASR_ENABLE_Msk | MPU_EXECUTION_DISABLE);
 
     // Secrets Region
     MPU->RNR = 7;
     MPU->RBAR = MXC_FLASH_MEM_BASE + MXC_FLASH_MEM_SIZE - 3 * MXC_FLASH_PAGE_SIZE; 
-    MPU->RASR = (MPU_DEFS_RASR_SIZE_4KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RO | MPU_RASR_ENABLE_Msk);// | MPU_EXECUTION_DISABLE
-    //MPU->RASR = (MPU_DEFS_RASR_SIZE_8KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_RO | MPU_RASR_ENABLE_Msk);
+    MPU->RASR = (MPU_DEFS_RASR_SIZE_4KB | MPU_DEFS_NORMAL_MEMORY_WT | MPU_DEFS_RASE_AP_PRIV_RO | MPU_RASR_ENABLE_Msk | MPU_EXECUTION_DISABLE);
 
     // Disable unused regions
     for (i = 0; i < arr_size; ++i) {
@@ -76,7 +71,6 @@ uint8_t mpu_setup() {
     }
 
     // Enable MPU
-    //Random Delay
     Random_Delay();
     MPU->CTRL = MPU_CTRL_ENABLE_Msk;
 
@@ -127,15 +121,8 @@ void request_privilege() {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
 
-    /*char buf[80];*/
-    /*sprintf(buf, "Ret Addr offset in request_privilege: %d\n", return_addr - (void*)flash_privileged_read);*/
-    /*print_debug(buf);*/
-    /*sprintf(buf, "Check Addr offset of REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET: %d\n", REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET - flash_privileged_read);*/
-    /*print_debug(buf);*/
-
     if(return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_READ_OFFSET &&
        return_addr != REQUEST_PRIVILEGE_IN_PRIVILEGED_WRITE_OFFSET){
-        // print_error("Failing in request_privilege");
         while (1);
        }
 #endif
@@ -164,14 +151,7 @@ void flash_privileged_read(uint32_t address, void *buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0);
 
-    /*char buf[80];*/
-    /*sprintf(buf, "Ret Addr offset in flash_privileged_read:   %d\n", return_addr - (void*)read_secrets);*/
-    /*print_debug(buf);*/
-    /*sprintf(buf, "Check Addr offset of PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS: %d\n", PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS - read_secrets);*/
-    /*print_debug(buf);*/
-
     if(return_addr != PRIVILEGED_READ_IN_READ_SECRETS_ADDRESS) {
-        // print_error("Failing in flash_privileged_read");
         while (1);
     }
 #endif
@@ -191,7 +171,6 @@ int flash_privileged_write(uint32_t address, void* buffer, uint32_t len) {
 #ifdef CONDITIONAL_PRIV_ESCALATION_ENABLED
     void* return_addr = __builtin_return_address(0); 
     if ((return_addr != PRIVILEGED_WRITE_IN_UPDATE_SUBSCRIPTION_ADDRESS)){
-        // print_error("Failing in flash_privileged_write");
         while (1);
     }
 #endif

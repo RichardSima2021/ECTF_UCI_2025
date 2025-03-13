@@ -31,12 +31,8 @@ int read_bytes(void *buf, uint16_t len) {
     int i;
 
     for (i = 0; i < len; i++) {
-        // Never expect to ACK since the max length is 124 bytes
-        // if (i % 256 == 0 && i != 0) { // Send an ACK after receiving 256 bytes
-        //     write_ack();
-        // }
         result = uart_readbyte(&status);
-        if (status < 0) {  // if there was an error, return immediately
+        if (status < 0) {
             return result;
         }
         if (i >= BUF_LEN) return -1;
@@ -53,23 +49,14 @@ void read_header(msg_header_t *hdr) {
     int status;
 
     hdr->magic = (char)0;
-    // Any bytes until '%' will be read, but ignored.
-    // Once we receive a '%', continue with processing the rest of the message.
     while (hdr->magic != MSG_MAGIC) {
         hdr->magic = uart_readbyte(&status);
-        // hardfaults on E_OVERFLOW (status = -13) error
-        volatile int x = 5 / (13 + status); // NOTE: Remove this if we hardfault
-        // if (status < 0) {
-        //     // underflow error
-        //     // see MXC_UART_RevB_ReadCharacterRaw
-        // }
+        volatile int x = 5 / (13 + status);
     }
     hdr->cmd = uart_readbyte(&status);
-    volatile int x = 5 / (13 + status); // see above
+    volatile int x = 5 / (13 + status);
 
-    read_bytes(&hdr->len, 2); // sizeof(&hdr->len) always 2
-    //  write_ack(); // ACK the final block
-
+    read_bytes(&hdr->len, 2);
 }
 
 /** @brief Receive an ACK from UART.
@@ -98,7 +85,7 @@ uint8_t read_ack() {
 */
 int write_bytes(const void *buf, uint16_t len, bool should_ack) {
     for (int i = 0; i < len; i++) {
-        if (i % 256 == 0 && i != 0) {  // Expect an ACK after sending every 256 bytes
+        if (i % 256 == 0 && i != 0) {
             if (should_ack && read_ack() < 0) {
                 return -1;
             }
@@ -128,16 +115,14 @@ int write_hex(msg_type_t type, const void *buf, size_t len) {
     hdr.cmd = type;
     hdr.len = len*2;
 
-    write_bytes(&hdr, MSG_HEADER_SIZE, false /* should_ack */);
+    write_bytes(&hdr, MSG_HEADER_SIZE, false);
     if (type != DEBUG_MSG && read_ack() < 0) {
-        // If the header was not ack'd, don't send the message
         return -1;
     }
 
     for (i = 0; i < len; i++) {
         if (i % (256 / 2) == 0 && i != 0) {
             if (type != DEBUG_MSG && read_ack() < 0) {
-                // If the block was not ack'd, don't send the rest of the message
                 return -1;
             }
         }
@@ -168,15 +153,12 @@ int write_packet(msg_type_t type, const void *buf, uint16_t len) {
         return result;
     }
 
-    // If the header was not ack'd, don't send the message
     if (type != DEBUG_MSG && read_ack() < 0) {
         return -1;
     }
 
-    // If there is data to write, write it
     if (len > 0) {
         result = write_bytes(buf, len, type != DEBUG_MSG);
-        // If we still need to ACK the last block (write_bytes does not handle the final ACK)
         if (type != DEBUG_MSG && read_ack() < 0) {
             return -1;
         }
@@ -196,7 +178,6 @@ int write_packet(msg_type_t type, const void *buf, uint16_t len) {
 int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
     msg_header_t header = {0};
 
-    // cmd must be a valid pointer
     if (cmd == NULL) {
         return -1;
     }
@@ -210,27 +191,26 @@ int read_packet(msg_type_t* cmd, void *buf, uint16_t *len) {
     }
 
     if (*cmd == DECODE_MSG && *len > 128) {
-        return -1; // Reject packets larger than 124 bytes, invalid lengths are not handled
+        return -1;
     } else if (*cmd == SUBSCRIBE_MSG && *len > 68) {
-        return -1; // Reject packets larger than 68 bytes, invalid lengths are not handled
+        return -1;
     } else if (*cmd == LIST_MSG && *len != 0) {
-        return -1; // Reject packets larger than 0 bytes, invalid lengths are not handled
+        return -1;
     }
 
     if (header.cmd != ACK_MSG) {
-        write_ack();  // ACK the header
+        write_ack();
         if (*len && buf != NULL) {
-            // Read the data
             if (read_bytes(buf, header.len) < 0) {
                 return -1;
             }
         }
         if (*len) {
-            if (write_ack() < 0) { // ACK the final block (not handled by read_bytes)
+            if (write_ack() < 0) {
                 return -1;
             }
         }
     }
-    uart_flush_rx(); // Flush any remaining bytes in the UART recieve buffer
+    uart_flush_rx();
     return 0;
 }
