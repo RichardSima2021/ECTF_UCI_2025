@@ -1,6 +1,6 @@
-# eCTF Insecure Example
+# eCTF 2025 UCI DESIGN
 
-This repository holds the insecure example design for an eCTF Satellite TV System.
+This repository contains UCI's Final Design
 
 ## Layout
 
@@ -18,7 +18,7 @@ This repository holds the insecure example design for an eCTF Satellite TV Syste
         - `gen_subscription.py` - Generates subscription updates
     - `pyproject.toml` - File that tells pip how to install this module
 - `frames/` - Example frame data
-- `tools/` - Host tools - DO NOT MODIFY ANYTHING IN THIS DIRECTORY
+- `tools/` - Host tools 
     - `ectf25/` - Directory with tool source
         - `tv/` - Sends received frames to the decoder
             - `list.py` - Tool to list active decoder subscriptions
@@ -31,6 +31,7 @@ This repository holds the insecure example design for an eCTF Satellite TV Syste
             - `tester.py` - Utility for testing decoder
         - `satellite.py` - Broadcasts frames from uplink to all decoders
     - `pyproject.toml` - File that tells pip how to install this module
+- Documentation and Build Shell Codes
 
 ## Usage and Requirements
 
